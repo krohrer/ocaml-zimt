@@ -26,6 +26,7 @@ type policy = [ `ASSIGN | `RETAIN_NONATOMIC | `COPY_NONATOMIC | `RETAIN | `COPY]
 (* Working with Classes *)
 external class_addIvar : class' -> name -> size -> alignment:int -> types -> bool = 
    "objc_class_addIvar"
+(*
 external class_addMethod : class' -> sel -> imp -> types -> bool =
    "objc_class_addMethod"
 external class_addProtocol : class' -> protocol -> bool =
@@ -217,3 +218,4 @@ external property_getName : property -> name =
    "objc_property_getName"
 external property_getAttributes : property -> attributes =
    "objc_property_getAttributes"
+*)
