@@ -1,221 +1,198 @@
-exception IndexOutOfBounds
-exception IsNil
-
-type id
-type class'
-type property
-type attributes
-type sel
+type id (* = objc_object struct ptr *)
+type sel (* = objc_selector struct ptr *)
+type ivar (* = objc_ivar ptr *)
+type class' (* = objc_class ptr *)
+type category (* = objc_category *)
+type method' (* = objc_method ptr *)
 type imp
-type ivar
-type protocol
-type type' = string
-type types = string
-type method'
-type method_description = sel * types
-type name = string
-type size = int
-type ivar_layout = string
-type weak_ivar_layout = string
-type version = int
-type c_ptrdiff = int
-type c_bytes
-type c_pointer
-type policy = [ `ASSIGN | `RETAIN_NONATOMIC | `COPY_NONATOMIC | `RETAIN | `COPY]
+type size_t = int
+type objc_property_t
+type objc_property_attribute_t (* = objc_property_attribute struct :: { const char *name; const char *value; } *)
+type objc_method_description_t (* = objc_method_description struct :: { SEL name; char *types; } *)
+type alignment_t = int
+type protocol_t (* = protocol ptr *)
 
-(* Working with Classes *)
-external class_addIvar : class' -> name -> size -> alignment:int -> types -> bool = 
-   "objc_class_addIvar"
-(*
-external class_addMethod : class' -> sel -> imp -> types -> bool =
-   "objc_class_addMethod"
-external class_addProtocol : class' -> protocol -> bool =
-   "objc_class_addProtocol"
-external class_conformsToProtocol : class' -> protocol -> bool =
-   "objc_class_conformsToProtocol"
-external class_copyIvarList : class' -> ivar array =
-   "objc_class_copyIvarList"
-external class_copyMethodList : class' -> method' array =
-   "objc_class_copyMethodList"
-external class_copyPropertyList : class' -> property array =
-   "objc_class_copyPropertyList"
-external class_copyProtocolList : class' -> protocol array =
-   "objc_class_copyProtocolList"
-external class_createInstance : class' -> extra:size -> id =
-   "objc_class_createInstance"
-external class_getClassMethod : class' -> sel -> method' =
-   "objc_class_getClassMethod"
-external class_getClassVariable : class' -> name -> ivar =
-   "objc_class_getClassVariable"
-external class_getInstanceMethod : class' -> method' =
-   "objc_class_getInstanceMethod"
-external class_getInstanceSize : class' -> size =
-   "objc_class_getInstanceSize"
-external class_getInstanceVariable : class' -> name -> ivar =
-   "objc_class_getInstanceVariable"
-external class_getIvarLayout : class' -> ivar_layout =
-   "objc_class_getIvarLayout"
-external class_getMethodImplementation : class' -> sel -> imp =
-   "objc_class_getMethodImplementation"
-external class_getMethodImplementation_stret : class' -> sel -> imp =
-   "objc_class_getMethodImplementation_stret"
-external class_getName : class' -> string =
-   "objc_class_getName"
-external class_getProperty : class' -> string -> property =
-   "objc_class_getProperty"
-external class_getSuperclass : class' -> class' =
-   "objc_class_getSuperclass"
-external class_getVersion : class' -> version =
-   "objc_class_getVersion"
-external class_getWeakIvarLayout : class' -> weak_ivar_layout  =
-   "objc_class_getWeakIvarLayout"
-external class_isMetaClass : class' -> bool =
-   "objc_class_isMetaClass"
-external class_replaceMethod : class' -> sel -> imp -> types -> imp =
-   "objc_class_replaceMethod"
-external class_respondsToSelector : class' -> sel -> bool =
-   "objc_class_respondsToSelector"
-external class_setIvarLayout : class' -> ivar_layout -> unit =
-   "objc_class_setIvarLayout"
-external class_setSuperclass : class' -> class' -> unit =
-   "objc_class_setSuperclass"
-external class_setVersion : class' -> version -> unit =
-   "objc_class_setVersion"
-external class_setWeakIvarLayout : class' -> weak_ivar_layout -> unit =
-   "objc_class_setWeakIvarLayout"
-(* external objc_getFutureClass : class' -> name -> class' *)
-(* external objc_setFutureClass : class' -> name -> unit *)
+type 'a ptr
+type 'a const_ptr
 
-(* Adding Classes *)
-external objc_allocateClassPair : super:class' -> name -> extra:size -> class' =
-   "objc_objc_allocateClassPair"
-external objc_registerClassPair : class' -> unit =
-   "objc_objc_registerClassPair"
-(* external objc_duplicateClass : 'a *)
+type void = unit
+type cstr = char const_ptr
+type typeenc = cstr
+type uint8_t = int
+type ptrdiff_t = int
 
-(* Instantiating Classes *)
-external class_createInstance : class' -> extra:size -> id =
-   "objc_class_createInstance"
+val null : 'a ptr
 
-(* Working with Instances *)
-external object_copy : id -> size -> id =
-   "objc_object_copy"
-external object_dispose : id -> unit =
-   "objc_object_dispose"
-external object_setInstanceVariable : id -> name -> c_pointer -> ivar =
-   "objc_object_setInstanceVariable"
-external object_getInstanceVariable : id -> name -> ivar * id =
-   "objc_object_getInstanceVariable"
-external object_getIndexedIvars : id -> c_pointer =
-   "objc_object_getIndexedIvars"
-external object_getIvar : id -> ivar -> id =
-   "objc_object_getIvar"
-external object_setIvar : id -> ivar -> id -> unit =
-   "objc_object_setIvar"
-external object_getClassName : id -> name =
-   "objc_object_getClassName"
-external object_getClass : id -> class' =
-   "objc_object_getClass"
-external object_setClass : id -> class' -> class' =
-   "objc_object_setClass"
+module Class :
+    sig
+      type t = class'
+      type version = int32
 
-(* Obtaining Class Definitions *)
-external objc_getClassList : unit -> class' array =
-   "objc_objc_getClassList"
-external objc_lookUpClass : name -> id option =
-   "objc_objc_lookUpClass"
-external objc_getClass : id -> class' =
-   "objc_objc_getClass"
-external objc_getRequiredClass : name -> id =
-   "objc_objc_getRequiredClass"
-external objc_getMetaClass : name -> id =
-   "objc_objc_getMetaClass"
+      val get_name : t -> cstr
+      val is_meta_class : t -> bool
+      val get_super_class : t -> t
+      val set_super_class : t -> t (* DEPRECATED! *)
 
-(* Working with Instance Variables *)
-external ivar_getName : ivar -> name =
-   "objc_ivar_getName"
-external ivar_getTypeEncoding : ivar -> types =
-   "objc_ivar_getTypeEncoding"
-external ivar_getOffset : ivar -> c_ptrdiff =
-   "objc_ivar_getOffset"
+      val get_version : t -> version
+      val set_version : t -> version -> unit
 
-(* Associative References *)
-external objc_setAssociatedObject : id -> c_pointer -> id -> policy -> unit =
-   "objc_objc_setAssociatedObject"
-external objc_getAssociatedObject : id -> c_pointer -> id =
-   "objc_objc_getAssociatedObject"
-external objc_removeAssociatedObjects : id -> unit =
-   "objc_objc_removeAssociatedObjects"
+      val get_instance_size : t -> size_t
 
-(* Sending Messages *)
-external objc_msgSend : id -> sel -> id array -> id =
-   "objc_objc_msgSend"
-external objc_msgSend_fpret : id -> sel -> id array -> float =
-   "objc_objc_msgSend_fpret"
-external objc_msgSend_stret : id -> sel -> id array -> c_bytes =
-   "objc_objc_msgSend_stret"
-external objc_msgSendSuper : id -> sel -> id array -> id =
-   "objc_objc_msgSendSuper"
-external objc_msgSendSuper_stret : id -> sel -> id array -> c_bytes =
-   "objc_objc_msgSendSuper_stret"
+      val get_instance_variable : t -> cstr -> ivar
+      val get_class_variable : t -> cstr -> ivar
+      val copy_ivar_list : t -> int * ivar ptr
 
-(* Working with Methods *)
-external method_getName : method' -> sel =
-   "objc_method_getName"
-external method_getImplementation : method' -> imp =
-   "objc_method_getImplementation"
-external method_getTypeEncoding : method' -> types =
-   "objc_method_getTypeEncoding"
-external method_copyReturnType : method' -> type' =
-   "objc_method_copyReturnType"
-external method_copyArgumentType : method' -> int -> type' =
-   "objc_method_copyArgumentType"
-external method_getReturnType : method' -> type' =
-   "objc_method_getReturnType"
-external method_getNumberOfArguments : method' -> size =
-   "objc_method_getNumberOfArguments"
-external method_getArgumentType : method' -> int -> type' =
-   "objc_method_getArgumentType"
-external method_setImplementation : method' -> imp -> unit =
-   "objc_method_setImplementation"
-external method_exchangeImplementations : method' -> method' -> unit =
-   "objc_method_exchangeImplementations"
+      val get_instance_method : t -> sel -> method'
+      val get_class_method : t -> sel -> method'
+      val get_method_implementation : t -> sel -> imp
+      val get_method_implementation_stret : t -> sel -> imp
+      val responds_to_selector : t -> sel -> bool
+      val copy_method_list : t -> int * method' ptr
 
-(* Working with Selectors *)
-external sel_getName : sel -> name =
-   "objc_sel_getName"
-external sel_registerName : name -> sel =
-   "objc_sel_registerName"
-external sel_getUid : name -> sel =
-   "objc_sel_getUid"
-external sel_isEqual : sel -> sel -> bool =
-   "objc_sel_isEqual"
+      val conforms_to_protocol : t -> protocol_t -> bool
+      val copy_protocol_list : t -> int * protocol_t ptr
 
-(* Working with Protocols *)
-external objc_getProtocol : name -> protocol =
-   "objc_objc_getProtocol"
-external objc_copyProtocolList : unit -> protocol array =
-   "objc_objc_copyProtocolList"
-external protocol_getName : protocol -> name =
-   "objc_protocol_getName"
-external protocol_isEqual : protocol -> protocol -> bool =
-   "objc_protocol_isEqual"
-external protocol_copyMethodDescriptionList : protocol -> required:bool -> instance:bool -> method_description array =
-   "objc_protocol_copyMethodDescriptionList"
-external protocol_getMethodDescription : protocol -> sel -> required:bool -> instance:bool -> method_description =
-   "objc_protocol_getMethodDescription"
-external protocol_copyPropertyList : protocol -> property array =
-   "objc_protocol_copyPropertyList"
-external protocol_getProperty : protocol -> name -> required:bool -> instance:bool -> property =
-   "objc_protocol_getProperty"
-external protocol_copyProtocolList : protocol -> protocol array =
-   "objc_protocol_copyProtocolList"
-external protocol_conformsToProtocol : protocol -> protocol -> bool =
-   "objc_protocol_conformsToProtocol"
+      val get_property : t -> cstr -> objc_property_t
+      val copy_property_list : t -> int * objc_property_t ptr
 
-(* Working with Properties *)
-external property_getName : property -> name =
-   "objc_property_getName"
-external property_getAttributes : property -> attributes =
-   "objc_property_getAttributes"
-*)
+      val get_ivar_layout : t -> uint8_t const_ptr
+      val get_weak_ivar_layout : t -> uint8_t const_ptr
+
+      val create_instance : t -> size_t -> id
+      val construct_instance : t -> void ptr -> id
+      val destruct_instance : id -> void ptr
+	  
+      val add_method : t -> sel -> imp -> cstr -> bool
+      val replace_method : t -> sel -> imp -> cstr -> imp
+      val add_ivar : t -> cstr -> size_t -> alignment_t -> cstr -> bool
+      val add_protocol : t -> protocol_t -> bool
+      val add_property : t -> cstr -> objc_property_attribute_t const_ptr -> int -> bool
+      val replace_property : t -> cstr -> objc_property_attribute_t const_ptr -> int -> void
+      val set_ivar_layout : t -> uint8_t -> void
+      val set_weak_ivar_layout : t -> uint8_t -> void
+
+      val get_image_name : t -> cstr
+    end
+
+val allocate_class_pair : class' -> cstr -> size_t -> class'
+val register_class_pair : class' -> unit
+val duplicate_class : class' -> cstr -> size_t -> class'
+val dispose_class_pair : class' -> unit
+
+val copy_image_names : unit -> int * cstr ptr
+val copy_clas_names_for_image : cstr -> int * cstr ptr
+    
+module Method :
+    sig
+      type t = method'
+      type description = objc_method_description_t
+	    
+      val get_name : t -> sel
+      val get_implementation : t -> imp
+      val get_type_encoding : t -> typeenc
+
+      val get_number_of_arguments : t -> int
+      val copy_return_type : t -> char ptr
+      val copy_argument_type : t -> int -> char ptr 
+      val get_return_type : t -> char ptr -> size_t -> unit
+      val get_argument_type : t -> int -> char ptr -> size_t -> unit
+      val get_description : t -> description ptr
+
+      val set_implementation : t -> imp -> imp
+      val exchange_implementation : t -> t -> unit
+    end
+
+module Ivar :
+    sig
+      type t = ivar
+
+      val get_name : t -> cstr
+      val get_type_encoding : t -> typeenc
+      val get_offset : t -> ptrdiff_t
+    end
+
+module Property :
+    sig
+      type t = objc_property_t
+
+      val get_name : t -> cstr
+      val get_attributes : t -> cstr
+      val copy_attribute_list : t -> int * objc_property_attribute_t ptr (* 10.7 *)
+      val copy_attribute_value : t -> cstr -> char ptr (* 10.7 *)
+    end
+
+module Protocol :
+    sig
+      type t = protocol_t
+
+      val conforms_to_protocol : t -> t -> bool
+      val is_equal : t -> t -> bool
+      val get_name : t -> cstr
+      val get_method_description : t -> sel -> req:bool -> inst:bool -> objc_method_description_t
+      val copy_method_description_list : protocol_t -> req:bool -> inst:bool -> int * objc_method_description_t ptr
+      val get_property : t -> cstr -> req:bool -> inst:bool -> objc_property_t
+      val copy_property_list : t -> int * objc_property_t ptr
+      val copy_protocol_list : t -> int * protocol_t ptr
+
+      val add_method_description : t -> sel -> typeenc -> req:bool -> inst:bool -> unit (* 10.7 *)
+      val add_protocol : t -> t -> unit (* 10.7 *)
+      val add_property : t -> cstr -> objc_property_attribute_t ptr -> int -> req:bool -> inst:bool -> void (* 10.7 *)
+    end
+
+val allocate_protocol : cstr -> protocol_t (* 10.7 *)
+val register_protocol : protocol_t -> unit (* 10.7 *)
+
+module Sel : 
+    sig
+      type t = sel
+
+      val get_name : t -> cstr
+      val get_uid : cstr -> sel
+      val register_name : cstr -> sel
+      val is_equal : sel -> sel -> bool
+    end
+
+(* val objc_enumeration_mutation : id -> unit *)
+(* val objc_set_enumeration_mutation_handler : (id -> unit) -> unit *)
+
+(* val objc_set_forward_handler : void ptr -> void ptr -> unit *)
+
+(* val imp_implementation_with_block : void ptr -> imp *)
+(* val imp_get_block : imp -> void ptr *)
+(* val imp_remove_block : imp -> bool *)
+
+type objc_association_policy = Assign | Retain_Nonatomic | Copy_Nonatomic | Retain | Copy
+
+val set_associated_object : id -> cstr -> id -> objc_association_policy -> void
+val get_associated_object : id -> cstr -> id
+val remove_associated_objects : id -> unit
+    
+module Object :
+    sig
+      type t = id
+      val copy : t -> size_t -> t
+      val dispose : t -> t
+
+      val get_class : t -> class' -> class'
+      val set_class : t -> class' -> class'
+
+      val get_class_name : t -> cstr
+      val get_indexed_ivars : t -> void ptr
+
+      val get_ivar : t -> ivar -> t
+      val set_ivar : t -> ivar -> t -> unit
+
+      val set_instance_variable : t -> cstr -> void ptr -> ivar
+      val get_instance_variable : t -> cstr -> void ptr * ivar
+    end
+
+val get_class : cstr -> id
+val get_meta_class : cstr -> id
+val lookup_class : cstr -> id
+val get_required_class : cstr -> id
+val get_future_class : cstr -> id
+val set_future_class : class' -> cstr -> unit
+val get_class_list : class' ptr -> int -> int
+val get_protocol : cstr -> class' ptr
+val copy_protocol_list : unit -> int * protocol_t ptr
+

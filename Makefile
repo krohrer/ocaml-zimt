@@ -1,21 +1,21 @@
 .PHONY: clean all run
-.DEFAULT: all
+.DEFAULT: run
 
-all:run 
+run: test.opt
+	#otool -L test.opt
+	./test.opt
+
+all:test.opt 
 
 objC.cmi: objC.mli
 	ocamlopt -c objC.mli
-objC.cmx, objC.o: objC.ml
+objC.cmx: objC.ml
 	ocamlopt -c objC.ml
-objC_imp.o: objC.ml
-	ocamlopt -c objC_imp.c
+objC_imp.o: objC_imp.m
+	clang -c -I "/opt/local/lib/ocaml" objC_imp.m
 
-test.opt: test.ml objC_imp.o objC.cmi objC.o
-	ocamlopt -cclib "-framework Foundation" -cclib "-framework OpenGL" -cclib "-lobjc" -o test.opt test.ml objC.o objC_imp.o
-
-run:test.opt
-	otool -L test.opt
-	./test.opt
+test.opt: test.ml objC_imp.o objC.cmi objC.cmx
+	ocamlopt -verbose -cclib "-framework Foundation" -o test.opt objC.cmx objC_imp.o test.ml
 
 clean:
 	rm *.cm{i,o,x} *.o *.opt a.out
