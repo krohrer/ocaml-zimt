@@ -26,7 +26,7 @@ type category = objc_category struct' ptr
 type method' = objc_method struct' ptr
 type imp = void ptr
 type size_t = int
-type objc_property_t = objc_property struct'
+type objc_property_t = objc_property struct' ptr
 type objc_property_attribute_t = objc_property_attribute struct'
 type alignment_t = int
 type protocol = objc_object struct'
@@ -43,7 +43,7 @@ module rec Class :
       val get_name : t -> cstr
       val is_meta_class : t -> bool
       val get_superclass : t -> t
-      val set_superclass : t -> t (* DEPRECATED! *)
+      (* val set_superclass : t -> t (\* DEPRECATED! *\) *)
 
       val get_version : t -> version
       val set_version : t -> version -> unit
@@ -71,8 +71,6 @@ module rec Class :
       val get_weak_ivar_layout : t -> uint8_t const_ptr
 
       val create_instance : t -> size_t -> id
-      val construct_instance : t -> void ptr -> id
-      val destruct_instance : id -> void ptr
 	  
       val add_method : t -> sel -> imp -> cstr -> bool
       val replace_method : t -> sel -> imp -> cstr -> imp
@@ -80,8 +78,8 @@ module rec Class :
       val add_protocol : t -> Protocol.p -> bool
       val add_property : t -> cstr -> Property.attribute const_ptr -> int -> bool
       val replace_property : t -> cstr -> Property.attribute const_ptr -> int -> void
-      val set_ivar_layout : t -> uint8_t -> void
-      val set_weak_ivar_layout : t -> uint8_t -> void
+      val set_ivar_layout : t -> uint8_t const_ptr -> void
+      val set_weak_ivar_layout : t -> uint8_t const_ptr -> void
 
       val get_image_name : t -> cstr
     end
@@ -103,12 +101,12 @@ and Method :
     val get_number_of_arguments : t -> int
     val copy_return_type : t -> char ptr
     val copy_argument_type : t -> int -> char ptr 
-    val get_return_type : t -> char ptr -> size_t -> unit
-    val get_argument_type : t -> int -> char ptr -> size_t -> unit
+    (* val get_return_type : t -> char ptr -> size_t -> unit *)
+    (* val get_argument_type : t -> int -> char ptr -> size_t -> unit *)
     val get_description : t -> description ptr
 
     val set_implementation : t -> imp -> imp
-    val exchange_implementation : t -> t -> unit
+    val exchange_implementations : t -> t -> unit
   end
 
 and Ivar :
@@ -166,7 +164,7 @@ and Object :
       val copy : t -> size_t -> t
       val dispose : t -> t
 
-      val get_class : t -> Class.t -> Class.t
+      val get_class : t -> Class.t
       val set_class : t -> Class.t -> Class.t
 
       val get_class_name : t -> cstr
@@ -176,16 +174,19 @@ and Object :
       val set_ivar : t -> Ivar.t -> t -> unit
 
       val set_instance_variable : t -> cstr -> void ptr -> Ivar.t
-      val get_instance_variable : t -> cstr -> void ptr * Ivar.t
+      val get_instance_variable : t -> cstr -> void ptr ref -> Ivar.t
     end
+
+val construct_instance : Class.t -> void ptr -> id
+val destruct_instance : id -> void ptr
 
 val allocate_class_pair : Class.t -> cstr -> size_t -> Class.t
 val register_class_pair : Class.t -> unit
 val duplicate_class : Class.t -> cstr -> size_t -> Class.t
 val dispose_class_pair : Class.t -> unit
 
-val copy_image_names : unit -> int ref -> cstr ptr
-val copy_clas_names_for_image : cstr -> int ref -> cstr ptr
+val copy_image_names : int ref -> cstr ptr
+val copy_class_names_for_image : cstr -> int ref -> cstr ptr
     
 val allocate_protocol : cstr -> Protocol.p (* 10.7 *)
 val register_protocol : Protocol.p -> unit (* 10.7 *)
@@ -201,16 +202,18 @@ val register_protocol : Protocol.p -> unit (* 10.7 *)
 
 type association_policy = Assign | Retain_Nonatomic | Copy_Nonatomic | Retain | Copy
 
-val set_associated_object : id -> cstr -> id -> association_policy -> void
+val set_associated_object : id -> cstr -> id -> association_policy -> unit
 val get_associated_object : id -> cstr -> id
 val remove_associated_objects : id -> unit
     
 val get_class : cstr -> id
 val get_meta_class : cstr -> id
-val lookup_class : cstr -> id
+val look_up_class : cstr -> id
 val get_required_class : cstr -> id
 val get_future_class : cstr -> id
 val set_future_class : Class.t -> cstr -> unit
 val get_class_list : Class.t ptr -> int -> int
-val get_protocol : cstr -> Class.t ptr
+val copy_class_list : int ref -> Class.t ptr
+val get_protocol : cstr -> Protocol.p
 val copy_protocol_list : unit -> int ref -> Protocol.p ptr
+
