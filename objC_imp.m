@@ -311,12 +311,27 @@ a single thing to/ fix!)
 
 // ObjC external functions ___________________________________________________
 
-FFI1( ObjC_malloc, PTR(void*), malloc, size_t )
+FFI1( C_malloc, PTR(void*), malloc, size_t )
 
-FFI1( ObjC_free, void, free, PTR(void*) )
+FFI1( C_free, void, free, PTR(void*) )
 
-FFI0( ObjC_make_null,
-      PTR(void*), NULL )
+FFI0( C_make_null, PTR(void*), NULL )
+
+CAMLprim value C_dump_cstr(value vcstr) {
+  printf("%s\n", FFI_UNBOX(PTR(const char*), vcstr));
+  return Val_unit;
+}
+
+CAMLprim value C_copy_cstr(value vcstr) {
+  return caml_copy_string(FFI_UNBOX(PTR(const char*), vcstr));
+}
+
+CAMLprim value C_ptr_array_ith(value vparr, value vi) {
+  void **parr = FFI_UNBOX(PTR(void**), vparr);
+  int i = FFI_UNBOX(int, vi);
+  void *p = parr[i];
+  return FFI_BOX(PTR(void *), p);
+}
 
 //_____________________________________
 

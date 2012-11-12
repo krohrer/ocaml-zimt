@@ -31,9 +31,16 @@ type objc_property_attribute_t = objc_property_attribute struct'
 type alignment_t = int
 type protocol = objc_object struct'
 
-val malloc : size_t -> 'a ptr
-val free : 'a ptr -> unit
-val null : 'a ptr
+module C :
+    sig
+      val malloc : size_t -> 'a ptr
+      val free : 'a ptr -> unit
+      val null : 'a ptr
+
+      val copy_cstr : cstr -> string
+      val ptr_array_ith : 'a ptr ptr -> int -> 'a ptr
+      val ptr_array_iter : ('a ptr -> unit)  -> int -> 'a ptr ptr -> unit
+    end
 
 module rec Class :
     sig
@@ -215,5 +222,5 @@ val set_future_class : Class.t -> cstr -> unit
 val get_class_list : Class.t ptr -> int -> int
 val copy_class_list : int ref -> Class.t ptr
 val get_protocol : cstr -> Protocol.p
-val copy_protocol_list : unit -> int ref -> Protocol.p ptr
+val copy_protocol_list : int ref -> Protocol.p ptr
 

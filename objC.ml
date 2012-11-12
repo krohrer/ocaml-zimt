@@ -31,10 +31,22 @@ type objc_property_attribute_t = objc_property_attribute struct'
 type alignment_t = int
 type protocol = objc_object struct'
 
-external malloc : size_t -> 'a ptr = "ObjC_malloc"
-external free : 'a ptr -> unit = "ObjC_free"
-external make_null : unit -> 'a ptr = "ObjC_make_null" 
-let null = make_null ()
+
+module C =
+    struct
+      external malloc : size_t -> 'a ptr = "C_malloc"
+      external free : 'a ptr -> unit = "C_free"
+      external make_null : unit -> 'a ptr = "C_make_null" 
+      let null = make_null ()
+
+      external copy_cstr : cstr -> string = "C_copy_cstr"
+      external ptr_array_ith : 'a ptr ptr -> int -> 'a ptr = "C_ptr_array_ith"
+      let ptr_array_iter f n parr =
+	for i = 0 to n - 1 do
+	  let p = ptr_array_ith parr i in
+	  f p
+	done
+    end
 
 module Class =
   struct
@@ -313,5 +325,5 @@ external copy_class_list : int ref -> Class.t ptr =
   "ObjC_copy_class_list"
 external get_protocol : cstr -> Protocol.p =
   "ObjC_get_protocol"
-external copy_protocol_list : unit -> int ref -> Protocol.p ptr =
+external copy_protocol_list : int ref -> Protocol.p ptr =
   "ObjC_copy_protocol_list"
