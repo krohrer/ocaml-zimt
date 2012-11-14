@@ -194,7 +194,7 @@ module CCode =
 		   code;
 		   caml_return x ]
 
-    let defimp = failwith "Yeah... NO."
+    let defimp e = failwith "Yeah... NO."
   end
 
 let defconst ~mlname rtype expr =
