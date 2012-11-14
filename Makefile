@@ -45,7 +45,7 @@ objc.top: objC.cma
 
 
 clean:
-	rm -f *.cm{i,o,x,a} *.o *.opt a.out
+	rm -f *.cm{i,o,x,a,xa} *.a *.o *.opt a.out *.top
 
 clobber: clean
 	rm -f *~ *.annot
