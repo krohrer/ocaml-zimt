@@ -1,13 +1,13 @@
 .PHONY: clean all run clobber dump
 .DEFAULT: run
 
-run: test.opt
-	./test.opt
+run: foreign.opt
+	./foreign.opt
 
 dump: testopt
 	otool -L test.opt
 
-all:test.opt objc.top foreign.top
+all:test.opt objc.top foreign.top foreign.opt
 
 
 foreign.cmi: foreign.mli
@@ -16,6 +16,9 @@ foreign.cmx foreign.o: foreign.ml foreign.cmi
 	ocamlopt -c foreign.ml
 foreign.cmo: foreign.ml foreign.cmi
 	ocamlc -c foreign.ml
+
+foreign.opt: foreign.ml foreign.cmi
+	ocamlopt -o foreign.opt foreign.ml
 
 foreign.top: foreign.cmo foreign.cmi
 	ocamlmktop -o foreign.top foreign.cmo

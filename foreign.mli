@@ -9,7 +9,7 @@ and cstmt = string
 
 and entry
 
-and genimp
+and cgenimp
 
 module Type :
     sig
@@ -32,17 +32,17 @@ module Entry :
       type t = entry
 
       val make :
-	  ?mlname:name ->
+	  mlname:name ->
 	    rtype:type' ->
-	      cname:name ->
-		args:arg array ->
-		  genimp:genimp -> entry
+	      args:arg array ->
+		cgenimp:cgenimp -> entry
 
       val mlname	: t -> name
-      val cname		: t -> name
       val rtype		: t -> type'
       val args		: t -> arg array
-      val genimp	: t -> genimp
+      val cgenimp	: t -> cgenimp
+      val extname	: t -> name
+      val numargs	: t -> int
 
       val argi : entry -> int -> arg
       val sig1 : entry -> type'*arg
@@ -71,7 +71,7 @@ module CCode :
 
       val stmtf : ('a, unit, string, t) format4 -> 'a
 
-      val call : name -> cexpr list -> cexpr
+      val call : name -> cexpr array -> cexpr
       val return : cexpr -> t
 
       val box_return : type' -> cexpr -> t
@@ -91,14 +91,17 @@ module CCode :
 	  ?params:name list ->
 	    ?locals:name list ->
 	      t -> cexpr -> t
-
-      val defimp : genimp
     end
-      
-val defconst : mlname:name -> type' -> cexpr -> entry
-val defun : ?mlname:name -> type' -> name -> arg list -> genimp -> entry
 
-val ($) : ('a -> 'b) -> 'a -> 'b
+module Interface :
+    sig
+      val defconst : name -> type' -> cexpr -> entry
+      val defun : name -> arg list -> type' -> cgenimp -> entry
+
+      val ($) : ('a -> 'b) -> 'a -> 'b
+
+      val dump : entry -> string
+    end
 
 (*--------------------------------------------------------------------------*)
 
@@ -110,7 +113,6 @@ module CDSL :
       val return : 'a -> 'a t
 
       val rtype : entry -> type' t
-      val cname : entry -> name t
       val argi : entry -> int -> arg t
       val sig1 : entry -> (type'*arg) t
       val sig2 : entry -> (type'*arg*arg) t
@@ -133,7 +135,7 @@ module CDSL :
 
       val ret : cexpr -> unit t
 
-      val call : name -> cexpr list -> cexpr t
+      val call : name -> cexpr array -> cexpr t
       val box : type' -> cexpr -> cexpr t
       val unbox : type' -> cexpr -> cexpr t
 

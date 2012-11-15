@@ -13,14 +13,13 @@ and cexpr = string
 and cstmt = string
 
 and entry = {
-    e_mlname    : name;
+    e_mlname	: name;
     e_rtype	: type';
-    e_cname	: name;
     e_args	: arg array;
-    e_genimp	: genimp;
+    e_cgenimp	: cgenimp;
   }
 
-and genimp = entry -> ccode
+and cgenimp = entry -> ccode
 
 (*----------------------------------------------------------------------------*)
 
@@ -83,22 +82,26 @@ module Entry =
 
     type t = entry
 
-    let make ?mlname ~rtype ~cname ~args ~genimp =
-      { e_mlname	= (match mlname with None -> cname | Some n -> n);
+    let make ~mlname ~rtype ~args ~cgenimp =
+      { e_mlname	= mlname;
 	e_rtype		= rtype;
-	e_cname		= cname;
 	e_args		= args;
-	e_genimp	= genimp; }
+	e_cgenimp	= cgenimp }
 
     let mlname	{ e_mlname	= n; _ } = n
-    let cname	{ e_cname	= n; _ } = n
     let rtype	{ e_rtype	= t; _ } = t
     let args	{ e_args	= a; _ } = a
-    let genimp	{ e_genimp	= g; _ } = g
+    let cgenimp	{ e_cgenimp	= g; _ } = g
+
+    let extname e = sprintf "camlffi_%s" (mlname e)
+
+    let numargs e = Array.length (args e)
+
+    let needs_bytecode e = numargs e > 5
 
     let argi e i =
       let a = args e in
-      let n = Array.length a in
+      let n = numargs e in
       if i < n then
 	a.(i)
       else
@@ -134,7 +137,7 @@ module Entry =
     | args			-> sigfail 8 args
     and sig9 y = match args y with
       [|a;b;c;d;e;f;g;h;i|]	-> rtype y,a,b,c,d,e,f,g,h,i
-    | args			-> sigfail 8 args
+    | args			-> sigfail 9 args
     and sign e = rtype e,args e
   end
 
@@ -145,16 +148,12 @@ module CCode =
     open Printf
 
     module T = Type
+    module E = Entry
 
     type t = ccode
 
-    let make_cfdecl name args =
-      let argdecl (n, _) = "value "^n in
-      sprintf "CAMLprim values caml_ffi_%s(%s)"
-	name (String.concat ", " (List.map argdecl args))
-
     let stmtf fmt = ksprintf (fun s -> CStmt s) fmt
-    let call n xs = sprintf "%s(%s)" n (String.concat ", " xs)
+    let call n xs = sprintf "%s(%s)" n (String.concat ", " (Array.to_list xs))
     let return x = CStmt (sprintf "return %s" x)
     let box_return t x = return (T.cbox t x)
     let unbox_arg (t,n) = T.cunbox t n
@@ -194,24 +193,148 @@ module CCode =
 		   code;
 		   caml_return x ]
 
-    let defimp e = failwith "Yeah... NO."
+    let wrap_cfun cname e =
+      let rtype = E.rtype e and
+	  args	= E.args e in
+      let unboxed_args = Array.map unbox_arg args in
+      CSeq [ let' rtype "r" (call cname unboxed_args);
+	     box_return rtype "r" ]
+	     
   end
 
-let defconst ~mlname rtype expr =
-  let cname	= mlname and
-      args	= [|CTypes.void, "unit"|] and
-      genimp _	= CCode.box_return rtype expr in
-  Entry.make ~mlname ~rtype ~cname ~args ~genimp
-    
-let defun ?mlname rtype cname args genimp =
-  Entry.make ?mlname ~rtype ~cname ~args:(Array.of_list args) ~genimp
+(*--------------------------------------------------------------------------*)
 
-let ($) f x = f x
+module Interface =
+  struct
+    module E = Entry
+    module T = Type
+    module C = CCode
+    module B = Buffer
+    open Printf
 
-let _ = [
-  (* defun C.string "class_getName" [Class.t, "cls"] $ Imp.default; *)
-  (* defun string "class_getName" [Class.t, "cls"] $ ... *)
-]
+    let defconst mlname rtype expr =
+      let args		= [|CTypes.void, "unit"|] and
+	  cgenimp _	= CBlock [ C.box_return rtype expr ] in
+      Entry.make ~mlname ~rtype ~args ~cgenimp
+	
+    let defun mlname args rtype cgenimp =
+      Entry.make ~mlname ~rtype ~args:(Array.of_list args) ~cgenimp
+
+    let ($) f x = f x
+
+    let dumps b s =
+      B.add_string b s
+
+    let dumpf b f =
+      bprintf b f
+
+    let dump_indent b n =
+      for i = 0 to n-1 do
+	dumps b "  "
+      done
+
+    let rec dump_ccode b ?(indent=0) = function
+	| CBlock cs			-> dump_block b indent cs
+	| CSeq cs when indent > 0	-> dump_seq b indent cs
+	| CStmt s when indent > 0	-> dump_stmt b indent s
+	| CEmpty when indent > 0	-> ()
+	| c				-> dump_block b indent [ c ]
+    and dump_block b i cs =
+      dump_indent b i; dumps b "{\n";
+      dump_seq b (i+1) cs;
+      dump_indent b i; dumps b "}\n";
+    and dump_seq b i cs =
+      List.iter (dump_ccode b ~indent:i) cs
+    and dump_stmt b i s =
+      dump_indent b i; dumps b s; dumps b ";\n"
+
+    let dump_ml_signature b e =
+      for i = 0 to E.numargs e - 1 do
+	let t,_ = E.argi e i in
+	dumps b (T.mlname t);
+	dumps b " -> "
+      done;
+      dumps b (T.mlname (E.rtype e))
+
+    let dump_ml_fdecl b e =
+      let mlname = E.mlname e in
+      dumpf b "external %s : " mlname;
+      dump_ml_signature b e;
+      dumps b " = \n";
+      if E.needs_bytecode e then
+	dumpf b "  \"%s_bc\"\n" mlname;
+      dumpf b "  \"%s\"\n" mlname
+
+    let dump_c_fdecl b e =
+      dumps b "CAMLprim value ";
+      dumps b (E.extname e);
+      dumps b " (";
+      for i = 0 to E.numargs e - 1 do
+	let _,n = E.argi e i in
+	if i > 0 then dumps b ", ";
+	dumps b "value ";
+	dumps b n
+      done;
+      dumps b ")"
+
+    let dump_c_fdef b e =
+      dump_c_fdecl b e;
+      dumps b "\n";
+      dump_ccode b (E.cgenimp e e)
+      
+    let dump_c_fdecl_bytecode b e =
+      dumps b "CAMLprim value ";
+      dumps b (E.extname e);
+      dumps b "__bc (value * argv, int argn)"
+
+    let dump_c_fbody_bytecode b e =
+      dumps b "{\n";
+      dumps b "  return ";
+      dumps b (E.extname e);
+      dumps b " (";
+      for i = 0 to E.numargs e - 1 do
+	if i > 0 then dumps b ", ";
+	dumpf b "argv[%d]" i
+      done;
+      dumps b ");";
+      dumps b "\n}\n"
+
+    let dump_c_fdef_bytecode b e =
+      dump_c_fdecl_bytecode b e;
+      dumps b "\n";
+      dump_c_fbody_bytecode b e
+
+    let rec dump e =
+      let b = B.create 1024 in
+      dump_ml_fdecl b e;
+      dumps b "\n";
+      dump_c_fdecl_bytecode b e;
+      dumps b ";\n";
+      dump_c_fdecl b e;
+      dumps b ";\n";
+      dump_c_fdef_bytecode b e;
+      dumps b "\n";
+      dump_c_fdef b e;
+      dumps b "\n";
+      B.contents b
+  end
+
+(*--------------------------------------------------------------------------*)
+
+open Interface
+open CTypes
+open CCode
+
+let _ =
+  let entries = [
+    defun "class_getName"
+      [int, "cls"; string, "str"] string 
+      $ wrap_cfun "class_getName";
+    defun "class_warfare"
+      [int, "a"; int, "b"; int, "c"; int, "d"; int, "e"; int, "f"] string
+      $ wrap_cfun "class_warfare";
+  ] in
+  List.iter (fun x -> print_endline (dump x)) entries
 
 (*--------------------------------------------------------------------------*)
 
@@ -241,7 +364,6 @@ module CDSL =
       | MAdd (c1, c2) -> collect (collect accu c2) c1
 
     let rtype e = return (E.rtype e)
-    let cname e = return (E.cname e)
     let argi e i = return (E.argi e i)
     let sig1 e = return (E.sig1 e)
     let sig2 e = return (E.sig2 e)
@@ -263,7 +385,10 @@ module CDSL =
     let declaref t n fmt = ksprintf (stmtf "%s %s = %s" (T.cname t) n) fmt
     let setf n fmt = ksprintf (stmtf "%s = %s" n) fmt
 
-    let call n xs = return (sprintf "%s(%s)" n (String.concat ", " xs))
+    let call n xa =
+      let xs = Array.to_list xa in
+      let x = sprintf "%s(%s)" n (String.concat ", " xs) in
+      return x
 
     let unbox t x = return (T.cunbox t x)
     let unbox_arg (t,n) = unbox t n
