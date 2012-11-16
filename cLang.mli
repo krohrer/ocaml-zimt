@@ -104,30 +104,18 @@ module Float64	: TYPE with type t = float64'
 
 module StructMixin (D : TYPE_DESC) :
     sig
-      type t = D.t struct'
-
-      val add_field : 'f type' -> ident -> (t,'f) field'
+      val add_field : 'a type' -> ident -> (D.t struct','a) field'
 	  
-      val make_type : unit -> t type'
+      val make_type : unit -> D.t struct' type'
       val make_repr : unit -> TypeRepr.t
     end
-    
-(*
+
 module CustomStruct :
     sig
       type s
-      type w = s struct'
-      type t = w type'
+      type 'a f = (s,'a) field'
+      include TYPE with type t = s struct'
+
+      val some_field : Int8.t f
+      val other_field : Bool.t f
     end
-
-module Struct (NewT : sig type t val name : ident val requires : string list end) :
-    sig
-      type t = NewT.t struct'
-      type r = t Type.t
-      type 'b f = (NewT.t,'b) field'
-
-      val add_field : 'b Type.t -> ident -> 'b f
-
-      val struct_repr : unit -> r
-    end
-*)

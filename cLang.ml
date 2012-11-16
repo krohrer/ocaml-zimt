@@ -206,21 +206,20 @@ module Float64 =
 
 module StructMixin (D : TYPE_DESC) :
     sig
-      type t = D.t struct'
-
-      val add_field : 'f type' -> ident -> (t,'f) field'
+      val add_field : 'a type' -> ident -> (D.t struct','a) field'
     
-      val make_type : unit -> t type'
+      val make_type : unit -> D.t struct' type'
       val make_repr : unit -> TypeRepr.t
     end
     =
   struct
-    type t = D.t struct'
-
+    let sealed = ref false
     let fields = ref []
 
     let add_field ft id =
-      if List.mem_assoc id !fields then
+      if !sealed then
+	raise (already_defined_exc "struct %s: cannot add field %s after make_type ()" D.name id)
+      else if List.mem_assoc id !fields then
 	raise (already_defined_exc "struct %s: field %s" D.name id)
       else begin
 	let f = (id, ft) in
@@ -228,61 +227,35 @@ module StructMixin (D : TYPE_DESC) :
 	f
       end
 
-    let make_type () = {
-      t_name = D.name;
-      t_defined = D.defined;
-      t_requires = D.requires;
-      t_metatype = MTStruct !fields;
-    }
+    let make_type () = 
+      sealed := true;
+      {
+       t_name = D.name;
+       t_defined = D.defined;
+       t_requires = D.requires;
+       t_metatype = MTStruct !fields;
+     }
 
-    let make_repr () = make_type ()	
+    let make_repr () = make_type ()
   end
-(*
-module Struct (NewT : sig type t val name : ident end) :
-    sig
-      type t = NewT.t struct'
-      type r = t Type.t
-      type 'b f = (NewT.t,'b) field'
 
-      val add_field : 'b Type.t -> ident -> 'b f
-
-      val struct_repr : unit -> r
-    end
-    =
+module CustomStruct =
   struct
-    type t = NewT.t struct'
-    type r = t Type.t
-    type 'b f = (NewT.t,'b) field'
+    type s
+    type t = s struct'
+    type 'a f = (t,'a) field'
 
-    let name = NewT.name
-    let fields = ref []
-    let size = ref 0
-    let max_align = ref 0
+    include StructMixin
+	(struct
+	  type t = s
+	  let name = "Hello"
+	  let defined = false
+	  let requires = [ `Usr "hello.h" ]
+	end)
 
-    let align_size align =
-      (!size + align - 1) land (align - 1)
+    let some_field = add_field Int8.t "someField"
+    let other_field = add_field Float32.t "otherField"
 
-    let add_field ft id =
-      if List.exists (fun d -> d.f_name = id) !fields then
-	raise (already_defined_exc "Struct %s: field %s" name id)
-      else begin
-  	let align = Type.align ft in
-	let o = align_size (Type.align ft) in
-	let field =
-	  { f_name = id;
-	    f_type = ft;
-	    f_offset = o }
-	in
-	fields := field :: !fields;
-	size := o + align;
-	max_align := max !max_align align;
-	field
-      end
-	  
-    let struct_repr () = 
-      let align = !max_align in
-      let size = align_size align in
-      Type.make ~name ~size ~align
+    let t = make_type ()
+    let r = make_repr ()
   end
-*)
-
