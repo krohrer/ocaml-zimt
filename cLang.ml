@@ -1,17 +1,4 @@
-type 'a type_t = type_desc
-and type_desc = {
-    t_name : string;
-    t_size : int;
-    t_align : int;
-  }
-and ('a,'b) field_t = field_desc
-and field_desc = {
-    f_name : string;
-    f_offset : int;
-    f_type : type_desc;
-  }
-
-(* type witnesses for builtin types *)
+(* Type witnesses for builtin types *)
 type void'	= [`Void]
 
 type int8'	= [`Int8]
@@ -39,7 +26,10 @@ type 'a array'
 type 'a struct'
 type ('a,'b) fun'
 
-type _ x =
+(* C Language description hoisted into OCaml (with some new constructs) *)
+type 'a type_t = type_desc
+and ('a,'b) field_t = field_desc
+and _ x =
 | XLit : 'a lit -> 'a x
 | XVar : 'a var -> 'a x
 | XOp1 : ('a x -> 'b x) lit * 'a x -> 'b x
@@ -62,6 +52,16 @@ and st =
 and ident = string
 and 'a var = 'a type_t * ident
 and 'a lit = string
+and type_desc = {
+    t_name : string;
+    t_size : int;
+    t_align : int;
+  }
+and field_desc = {
+    f_name : string;
+    f_offset : int;
+    f_type : type_desc;
+  }
 
 exception AlreadyDefined of string
 
