@@ -37,7 +37,7 @@ and _ x =
 | XOp1 : ('a x -> 'b x) lit * 'a x -> 'b x
 | XOp2 : ('a x -> 'b x -> 'c x) lit * 'a x * 'b x -> 'c x
 | XDeref : 'a ptr' x -> 'a x
-| XField : 'a struct' * ('a,'b) field' -> 'b x
+| XField : 'a * ('a,'b) field' -> 'b x
 | XArrSubs : 'a ptr' x * int' x -> 'a x
 | XCall : ('a -> 'b x) x * 'a -> 'b x
 | XStmtExpr : st list * 'a x -> 'a x
@@ -56,13 +56,15 @@ and 'a var = 'a type' * ident
 and 'a lit = string
 and type_repr = {
     t_name : string;
+    t_defined : bool;
     t_requires : header list;
+    t_metatype : metatype;
   }
-and field_repr = {
-    f_name : string;
-    f_type : type_repr;
-  }
+and field_repr = ident * type_repr
 and header = [ `Sys of string | `Usr of string ]
+and metatype =
+| MTScalar
+| MTStruct of field_repr list
 
 exception AlreadyDefined of string
 
@@ -72,128 +74,169 @@ module TypeRepr =
   struct
     type t = type_repr
 
-    let make ~name ~size ~align ~requires = {
-      t_name		= name;
-      t_requires	= requires;
-    }
-
     let name t		= t.t_name
+    let defined t	= t.t_defined
     let requires t	= t.t_requires
   end
 
 module type TYPE =
     sig
-      type w
-      type t = w type'
-	    
-      val t : t
+      type t
+
+      val t : t type'
       val r : type_repr
     end
 
-module type STD_TYPE_DESC =
+module type TYPE_DESC =
     sig
-      type w
+      type t
       val name : ident
+      val defined : bool
       val requires : header list
     end
 
-module StdType (D : STD_TYPE_DESC) =
+module ScalarType (D : TYPE_DESC) =
   struct
-    type w = D.w
-    type t = w type'
-	  
+    type t = D.t
+
     let t = {
       t_name = D.name;
+      t_defined = D.defined;
       t_requires = D.requires;
+      t_metatype = MTScalar;
     }
     let r = t
   end
     
-
 module Int8 =
-  StdType (struct
-    type w = int8'
+  ScalarType (struct
+    type t = int8'
     let name = "int8_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
     
 module Int16 =
-  StdType (struct
-    type w = int16'
+  ScalarType (struct
+    type t = int16'
     let name = "int16_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module Int32 =
-  StdType (struct
-    type w = int32'
+  ScalarType (struct
+    type t = int32'
     let name = "int32_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module Int64 =
-  StdType (struct
-    type w = int64'
+  ScalarType (struct
+    type t = int64'
     let name = "int64_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module NatInt =
-  StdType (struct
-    type w = natint'
+  ScalarType (struct
+    type t = natint'
     let name = "natint"
+    let defined = true
     let requires = [ `Sys "caml/config.h" ]
   end)
 
 module UInt8 =
-  StdType (struct
-    type w = uint8'
+  ScalarType (struct
+    type t = uint8'
     let name = "uint8_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
       
 module UInt16 =
-  StdType (struct
-    type w = uint16'
+  ScalarType (struct
+    type t = uint16'
     let name = "uint16_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module UInt32 =
-  StdType (struct
-    type w = uint32'
+  ScalarType (struct
+    type t = uint32'
     let name = "uint32_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module UInt64 =
-  StdType (struct
-    type w = uint64'
+  ScalarType (struct
+    type t = uint64'
     let name = "uint64_t"
+    let defined = true
     let requires = [ `Sys "stdint.h" ]
   end)
 
 module Bool =
-  StdType (struct
-    type w = bool'
+  ScalarType (struct
+    type t = bool'
     let name = "bool"
+    let defined = true
     let requires = [ `Sys "stdbool.h" ]
   end)
 
 module Float32 =
-  StdType (struct
-    type w = float32'
+  ScalarType (struct
+    type t = float32'
     let name = "float"
+    let defined = true
     let requires = []
   end)
 
 module Float64 =
-  StdType (struct
-    type w = float64'
+  ScalarType (struct
+    type t = float64'
     let name = "double"
+    let defined = true
     let requires = []
   end)
 
+module StructMixin (D : TYPE_DESC) :
+    sig
+      type t = D.t struct'
+
+      val add_field : 'f type' -> ident -> (t,'f) field'
+    
+      val make_type : unit -> t type'
+      val make_repr : unit -> TypeRepr.t
+    end
+    =
+  struct
+    type t = D.t struct'
+
+    let fields = ref []
+
+    let add_field ft id =
+      if List.mem_assoc id !fields then
+	raise (already_defined_exc "struct %s: field %s" D.name id)
+      else begin
+	let f = (id, ft) in
+	fields := f :: !fields;
+	f
+      end
+
+    let make_type () = {
+      t_name = D.name;
+      t_defined = D.defined;
+      t_requires = D.requires;
+      t_metatype = MTStruct !fields;
+    }
+
+    let make_repr () = make_type ()	
+  end
 (*
 module Struct (NewT : sig type t val name : ident end) :
     sig
@@ -242,3 +285,4 @@ module Struct (NewT : sig type t val name : ident end) :
       Type.make ~name ~size ~align
   end
 *)
+

@@ -37,7 +37,7 @@ and _ x =
 | XOp1 : ('a x -> 'b x) lit * 'a x -> 'b x
 | XOp2 : ('a x -> 'b x -> 'c x) lit * 'a x * 'b x -> 'c x
 | XDeref : 'a ptr' x -> 'a x
-| XField : 'a struct' * ('a,'b) field' -> 'b x
+| XField : 'a * ('a,'b) field' -> 'b x
 | XArrSubs : 'a ptr' x * int' x -> 'a x
 | XCall : ('a -> 'b x) x * 'a -> 'b x
 | XStmtExpr : st list * 'a x -> 'a x
@@ -61,38 +61,65 @@ and header = [ `Sys of string | `Usr of string ]
 (* C language types *)
 exception AlreadyDefined of string
 
-module type TYPE =
-  sig
-    type w (* Type witness / phantom type *)
-    type t = w type' (* OCaml type encoding of C type *)
-
-    val t : t (* strongly typed representation of C type *)
-    val r : type_repr (* untyped representation of C type *)
-  end
-
-module Int8	: TYPE with type w = int8'
-module Int16	: TYPE with type w = int16'
-module Int32	: TYPE with type w = int32'
-module Int64	: TYPE with type w = int64'
-module NatInt	: TYPE with type w = natint'
-module UInt8	: TYPE with type w = uint8'
-module UInt16	: TYPE with type w = uint16'
-module UInt32	: TYPE with type w = uint32'
-module UInt64	: TYPE with type w = uint64'
-module Bool	: TYPE with type w = bool'
-module Float32	: TYPE with type w = float32'
-module Float64	: TYPE with type w = float64'
-
 (* Untyped representation of C type *)
 module TypeRepr :
     sig
       type t = type_repr
 
       val name		: t -> ident
+      val defined	: t -> bool
       val requires	: t -> header list
     end
 
+module type TYPE =
+  sig
+    type t (* Type witness / phantom type *)
+
+    val t : t type' (* strongly typed representation of C type *)
+    val r : type_repr (* untyped representation of C type *)
+  end
+
+module type TYPE_DESC =
+    sig
+      type t
+      val name : ident
+      val defined : bool
+      val requires : header list
+    end
+
+module ScalarType (D : TYPE_DESC) : TYPE with type t = D.t
+
+module Int8	: TYPE with type t = int8'
+module Int16	: TYPE with type t = int16'
+module Int32	: TYPE with type t = int32'
+module Int64	: TYPE with type t = int64'
+module NatInt	: TYPE with type t = natint'
+module UInt8	: TYPE with type t = uint8'
+module UInt16	: TYPE with type t = uint16'
+module UInt32	: TYPE with type t = uint32'
+module UInt64	: TYPE with type t = uint64'
+module Bool	: TYPE with type t = bool'
+module Float32	: TYPE with type t = float32'
+module Float64	: TYPE with type t = float64'
+
+module StructMixin (D : TYPE_DESC) :
+    sig
+      type t = D.t struct'
+
+      val add_field : 'f type' -> ident -> (t,'f) field'
+	  
+      val make_type : unit -> t type'
+      val make_repr : unit -> TypeRepr.t
+    end
+    
 (*
+module CustomStruct :
+    sig
+      type s
+      type w = s struct'
+      type t = w type'
+    end
+
 module Struct (NewT : sig type t val name : ident val requires : string list end) :
     sig
       type t = NewT.t struct'
@@ -103,4 +130,4 @@ module Struct (NewT : sig type t val name : ident val requires : string list end
 
       val struct_repr : unit -> r
     end
- *)
+*)
