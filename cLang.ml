@@ -27,22 +27,22 @@ type 'a struct'
 type ('a,'b) fun'
 
 (* C Language description hoisted into OCaml (with some new constructs) *)
-type 'a type_t = type_desc
-and ('a,'b) field_t = field_desc
+type 'a type' = type_repr
+and ('a,'b) field' = field_repr
 and _ x =
 | XLit : 'a lit -> 'a x
 | XVar : 'a var -> 'a x
 | XOp1 : ('a x -> 'b x) lit * 'a x -> 'b x
 | XOp2 : ('a x -> 'b x -> 'c x) lit * 'a x * 'b x -> 'c x
 | XDeref : 'a ptr' x -> 'a x
-| XField : 'a struct' * ('a,'b) field_t -> 'b x
+| XField : 'a struct' * ('a,'b) field' -> 'b x
 | XArrSubs : 'a ptr' x * int' x -> 'a x
 | XCall : ('a -> 'b x) x * 'a -> 'b x
 | XStmtExpr : st list * 'a x -> 'a x
 | XIIf : bool x * 'a x * 'a x -> 'a x
 
 and st =
-| CDecl : 'a type_t * ident * 'a x option -> st
+| CDecl : 'a type' * ident * 'a x option -> st
 | CComp : st list -> st
 (*| CIf : int_t x * st * st option -> st *)
 | CCond : (int' x * st) list * st option -> st
@@ -50,172 +50,169 @@ and st =
 | CSwitch : 'a x * ('a lit * st) list * st option -> st
 
 and ident = string
-and 'a var = 'a type_t * ident
+and 'a var = 'a type' * ident
 and 'a lit = string
-and type_desc = {
+and type_repr = {
     t_name : string;
     t_size : int;
     t_align : int;
+    t_requires : string list;
   }
-and field_desc = {
+and field_repr = {
     f_name : string;
     f_offset : int;
-    f_type : type_desc;
+    f_type : type_repr;
   }
 
 exception AlreadyDefined of string
 
 let already_defined_exc fmt = Printf.ksprintf (fun s -> AlreadyDefined s) fmt
 
-module Type :
-    sig
-      type 'a t = 'a type_t
-
-      val make : name:ident -> size:int -> align:int -> 'a t
-      val name : 'a t -> ident
-      val size : 'a t -> int
-      val align : 'a t -> int
-    end
-    =
+module TypeRepr =
   struct
-    type 'a t = 'a type_t
+    type t = type_repr
 
-    let make ~name ~size ~align = {
-      t_name	= name;
-      t_size	= size;
-      t_align	= align;
+    let make ~name ~size ~align ~requires = {
+      t_name		= name;
+      t_size		= size;
+      t_align		= align;
+      t_requires	= requires;
     }
 
-    let name t = t.t_name
-    let size t = t.t_size
-    let align t  = t.t_align
+    let name t		= t.t_name
+    let size t		= t.t_size
+    let align t		= t.t_align
+    let requires t	= t.t_requires
   end
 
 module type TYPE =
     sig
-      type t
-      type r = t Type.t
-
-      val requires : string list
-	  
-      val repr : r
+      type w
+      type t = w type'
+	    
+      val t : t
+      val r : type_repr
     end
 
-module Int8 : TYPE with type t = int8' =
+module type STD_TYPE_DESC =
+    sig
+      type w
+      val name : ident
+      val size : int
+      val align : int
+    end
+
+module StdType (D : STD_TYPE_DESC) =
   struct
-    type t = int8'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"int8_t" ~size:1 ~align:1
-  end
-      
-module Int16 : TYPE with type t = int16' =
-  struct
-    type t = int16'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"int16_t" ~size:2 ~align:2
-  end
-
-module Int32 : TYPE with type t = int32' =
-  struct
-    type t = int32'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"int32_t" ~size:4 ~align:4
-  end
-
-module Int64 : TYPE with type t = int64' =
-  struct
-    type t = int64'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"int64_t" ~size:8 ~align:8
-  end
-
-module UInt8 : TYPE with type t = uint8' =
-  struct
-    type t = uint8'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"uint8_t" ~size:1 ~align:1
-  end
-      
-module UInt16 : TYPE with type t = uint16' =
-  struct
-    type t = uint16'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"uint32_t" ~size:2 ~align:2
-  end
-
-module UInt32 : TYPE with type t = uint32' =
-  struct
-    type t = uint32'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"uint32_t" ~size:4 ~align:4
-  end
-
-module UInt64 : TYPE with type t = uint64' =
-  struct
-    type t = uint64'
-    type r = t Type.t
-
-    let requires = [ "stdint.h" ]
-
-    let repr = Type.make ~name:"uint64_t" ~size:8 ~align:8
-  end
-
-module Bool : TYPE with type t = bool' =
-  struct
-    type t = bool'
-    type r = t Type.t
+    type w = D.w
+    type t = w type'
 	  
-    let requires = [ "stdbool.h" ]
+    let requires = [ "stdint.h"; "stdbool.h" ]
 
-    let repr = Type.make ~name:"bool" ~size:1 ~align:1
+    let t = {
+      t_name = D.name;
+      t_size = D.size;
+      t_align = D.align;
+      t_requires = requires;
+    }
+    let r = t
   end
+    
 
-module Float32 : TYPE with type t = float32' =
-  struct
-    type t = float32'
-    type r = t Type.t
+module Int8 =
+  StdType (struct
+    type w = int8'
+    let name = "int8_t"
+    let size = 1
+    let align = 1
+  end)
+    
+module Int16 =
+  StdType (struct
+    type w = int16'
+    let name = "int16_t"
+    let size = 2
+    let align = 2
+  end)
 
-    let requires = []
+module Int32 =
+  StdType (struct
+    type w = int32'
+    let name = "int32_t"
+    let size = 4
+    let align = 4
+  end)
 
-    let repr = Type.make ~name:"float" ~size:4 ~align:4
-  end
+module Int64 =
+  StdType (struct
+    type w = int64'
+    let name = "int64_t"
+    let size = 8
+    let align = 8
+  end)
 
-module Float64 : TYPE with type t = float64' =
-  struct
-    type t = float64'
-    type r = t Type.t
+module UInt8 =
+  StdType (struct
+    type w = uint8'
+    let name = "uint8_t"
+    let size = 1
+    let align = 1
+  end)
+      
+module UInt16 =
+  StdType (struct
+    type w = uint16'
+    let name = "uint16_t"
+    let size = 2
+    let align = 2
+  end)
 
-    let requires = []
+module UInt32 =
+  StdType (struct
+    type w = uint32'
+    let name = "uint32_t"
+    let size = 4
+    let align = 4
+  end)
 
-    let repr = Type.make ~name:"double" ~size:8 ~align:8
-  end
+module UInt64 =
+  StdType (struct
+    type w = uint64'
+    let name = "uint64_t"
+    let size = 8
+    let align = 8
+  end)
 
+module Bool =
+  StdType (struct
+    type w = bool'
+    let name = "bool"
+    let size = 1
+    let align = 1	  
+  end)
+
+module Float32 =
+  StdType (struct
+    type w = float32'
+    let name = "float"
+    let size = 4
+    let align = 4
+  end)
+
+module Float64 =
+  StdType (struct
+    type w = float64'
+    let name = "double"
+    let size = 8
+    let align = 8
+  end)
+
+(*
 module Struct (NewT : sig type t val name : ident end) :
     sig
       type t = NewT.t struct'
       type r = t Type.t
-      type 'b f = (NewT.t,'b) field_t
+      type 'b f = (NewT.t,'b) field'
 
       val add_field : 'b Type.t -> ident -> 'b f
 
@@ -225,7 +222,7 @@ module Struct (NewT : sig type t val name : ident end) :
   struct
     type t = NewT.t struct'
     type r = t Type.t
-    type 'b f = (NewT.t,'b) field_t
+    type 'b f = (NewT.t,'b) field'
 
     let name = NewT.name
     let fields = ref []
@@ -257,3 +254,4 @@ module Struct (NewT : sig type t val name : ident end) :
       let size = align_size align in
       Type.make ~name ~size ~align
   end
+*)
