@@ -1,5 +1,7 @@
 .PHONY: clean all run clobber dump
-.DEFAULT: run
+
+cLang.opt: cLang.ml
+	ocamlopt -o cLang.opt cLang.ml
 
 run: foreign.opt
 	./foreign.opt
@@ -7,8 +9,7 @@ run: foreign.opt
 dump: testopt
 	otool -L test.opt
 
-all:test.opt objc.top foreign.top foreign.opt
-
+all:test.opt objc.top foreign.top foreign.opt clang.opt
 
 foreign.cmi: foreign.mli
 	ocamlopt -c foreign.mli
