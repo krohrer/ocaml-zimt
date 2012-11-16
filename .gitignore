@@ -3,3 +3,4 @@
 *.cm[x,i,o,a]
 *.cmxa
 *.o
+*.opt
