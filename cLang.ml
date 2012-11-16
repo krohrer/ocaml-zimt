@@ -6,6 +6,8 @@ type int16'	= [`Int16]
 type int32'	= [`Int32]
 type int64'	= [`Int64]
 
+type natint'	= [`NatInt]
+
 type uint8'	= [`UInt8]
 type uint16'	= [`UInt16]
 type uint32'	= [`UInt32]
@@ -17,7 +19,7 @@ type float16'	= [`Float16]
 type float32'	= [`Float32]
 type float64'	= [`Float64]
 
-type int' = [ `Int8 | `Int16 | `Int32 | `Int64 ]
+type int' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
 type uint' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
 type float' = [ `Float16 | `Float32 | `Float64 ]
 
@@ -54,15 +56,13 @@ and 'a var = 'a type' * ident
 and 'a lit = string
 and type_repr = {
     t_name : string;
-    t_size : int;
-    t_align : int;
-    t_requires : string list;
+    t_requires : header list;
   }
 and field_repr = {
     f_name : string;
-    f_offset : int;
     f_type : type_repr;
   }
+and header = [ `Sys of string | `Usr of string ]
 
 exception AlreadyDefined of string
 
@@ -74,14 +74,10 @@ module TypeRepr =
 
     let make ~name ~size ~align ~requires = {
       t_name		= name;
-      t_size		= size;
-      t_align		= align;
       t_requires	= requires;
     }
 
     let name t		= t.t_name
-    let size t		= t.t_size
-    let align t		= t.t_align
     let requires t	= t.t_requires
   end
 
@@ -98,8 +94,7 @@ module type STD_TYPE_DESC =
     sig
       type w
       val name : ident
-      val size : int
-      val align : int
+      val requires : header list
     end
 
 module StdType (D : STD_TYPE_DESC) =
@@ -107,13 +102,9 @@ module StdType (D : STD_TYPE_DESC) =
     type w = D.w
     type t = w type'
 	  
-    let requires = [ "stdint.h"; "stdbool.h" ]
-
     let t = {
       t_name = D.name;
-      t_size = D.size;
-      t_align = D.align;
-      t_requires = requires;
+      t_requires = D.requires;
     }
     let r = t
   end
@@ -123,88 +114,84 @@ module Int8 =
   StdType (struct
     type w = int8'
     let name = "int8_t"
-    let size = 1
-    let align = 1
+    let requires = [ `Sys "stdint.h" ]
   end)
     
 module Int16 =
   StdType (struct
     type w = int16'
     let name = "int16_t"
-    let size = 2
-    let align = 2
+    let requires = [ `Sys "stdint.h" ]
   end)
 
 module Int32 =
   StdType (struct
     type w = int32'
     let name = "int32_t"
-    let size = 4
-    let align = 4
+    let requires = [ `Sys "stdint.h" ]
   end)
 
 module Int64 =
   StdType (struct
     type w = int64'
     let name = "int64_t"
-    let size = 8
-    let align = 8
+    let requires = [ `Sys "stdint.h" ]
+  end)
+
+module NatInt =
+  StdType (struct
+    type w = natint'
+    let name = "natint"
+    let requires = [ `Sys "caml/config.h" ]
   end)
 
 module UInt8 =
   StdType (struct
     type w = uint8'
     let name = "uint8_t"
-    let size = 1
-    let align = 1
+    let requires = [ `Sys "stdint.h" ]
   end)
       
 module UInt16 =
   StdType (struct
     type w = uint16'
     let name = "uint16_t"
-    let size = 2
-    let align = 2
+    let requires = [ `Sys "stdint.h" ]
   end)
 
 module UInt32 =
   StdType (struct
     type w = uint32'
     let name = "uint32_t"
-    let size = 4
-    let align = 4
+    let requires = [ `Sys "stdint.h" ]
   end)
 
 module UInt64 =
   StdType (struct
     type w = uint64'
     let name = "uint64_t"
-    let size = 8
-    let align = 8
+    let requires = [ `Sys "stdint.h" ]
   end)
 
 module Bool =
   StdType (struct
     type w = bool'
     let name = "bool"
-    let size = 1
-    let align = 1	  
+    let requires = [ `Sys "stdbool.h" ]
   end)
 
 module Float32 =
   StdType (struct
     type w = float32'
     let name = "float"
-    let size = 4
-    let align = 4
+    let requires = []
   end)
 
 module Float64 =
   StdType (struct
     type w = float64'
     let name = "double"
-    let size = 8
-    let align = 8
+    let requires = []
   end)
 
 (*

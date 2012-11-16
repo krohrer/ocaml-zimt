@@ -6,6 +6,8 @@ type int16'	= [`Int16]
 type int32'	= [`Int32]
 type int64'	= [`Int64]
 
+type natint'    = [`NatInt]
+
 type uint8'	= [`UInt8]
 type uint16'	= [`UInt16]
 type uint32'	= [`UInt32]
@@ -17,7 +19,7 @@ type float16'	= [`Float16]
 type float32'	= [`Float32]
 type float64'	= [`Float64]
 
-type int' = [ `Int8 | `Int16 | `Int32 | `Int64 ]
+type int' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
 type uint' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
 type float' = [ `Float16 | `Float32 | `Float64 ]
 
@@ -26,7 +28,7 @@ type 'a array'
 type 'a struct'
 type ('a,'b) fun'
 
-(* C language description hoisted into OCaml (with some new constructs) *)
+(* C Language description hoisted into OCaml (with some new constructs) *)
 type 'a type'
 and ('a,'b) field'
 and _ x =
@@ -53,7 +55,8 @@ and ident = string
 and 'a var = 'a type' * ident
 and 'a lit = string
 and type_repr
-(* and field_repr *)
+and field_repr
+and header = [ `Sys of string | `Usr of string ]
 
 (* C language types *)
 exception AlreadyDefined of string
@@ -71,6 +74,7 @@ module Int8	: TYPE with type w = int8'
 module Int16	: TYPE with type w = int16'
 module Int32	: TYPE with type w = int32'
 module Int64	: TYPE with type w = int64'
+module NatInt	: TYPE with type w = natint'
 module UInt8	: TYPE with type w = uint8'
 module UInt16	: TYPE with type w = uint16'
 module UInt32	: TYPE with type w = uint32'
@@ -85,9 +89,7 @@ module TypeRepr :
       type t = type_repr
 
       val name		: t -> ident
-      val size		: t -> int
-      val align		: t -> int
-      val requires	: t -> string list
+      val requires	: t -> header list
     end
 
 (*
