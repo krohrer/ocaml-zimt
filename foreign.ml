@@ -93,7 +93,8 @@ module Entry =
     let args	{ e_args	= a; _ } = a
     let cgenimp	{ e_cgenimp	= g; _ } = g
 
-    let extname e = sprintf "camlffi_%s" (mlname e)
+    let extname e	= sprintf "camlffi_%s" (mlname e)
+    let extname_bc e	= sprintf "camlffi_%s__bc" (mlname e)
 
     let numargs e = Array.length (args e)
 
@@ -193,9 +194,10 @@ module CCode =
 		   code;
 		   caml_return x ]
 
-    let wrap_cfun cname e =
+    let wrap_cfun e =
       let rtype = E.rtype e and
-	  args	= E.args e in
+	  args	= E.args e and
+	  cname = E.mlname e in
       let unboxed_args = Array.map unbox_arg args in
       CSeq [ let' rtype "r" (call cname unboxed_args);
 	     box_return rtype "r" ]
@@ -222,6 +224,7 @@ module Interface =
 
     let ($) f x = f x
 
+(*
     let dumps b s =
       B.add_string b s
 
@@ -317,6 +320,96 @@ module Interface =
       dump_c_fdef b e;
       dumps b "\n";
       B.contents b
+*)
+    module F = Format
+
+    let pps f s =
+      F.pp_print_string f s
+
+    let ppf f fmt =
+      F.fprintf f fmt
+
+    let rec pp_ccode f ?(needs_block=true) = function
+	| CBlock cs		-> pp_block f cs
+	| c when needs_block	-> pp_block f [c]
+	| CSeq cs		-> pp_seq f cs
+	| CStmt s		-> pp_stmt f s
+	| CEmpty		-> ppf f "@,"
+    and pp_block f cs =
+      ppf f "@[<v 2>{ ";
+      pp_seq f cs;
+      ppf f "@]@ }"
+    and pp_seq f cs =
+      List.iter (pp_ccode f ~needs_block:false) cs
+    and pp_stmt f s =
+      ppf f "@ %s;" s
+
+    let pp_ml_signature f e =
+      for i = 0 to E.numargs e - 1 do
+	let t,_ = E.argi e i in
+	ppf f "%s ->@ " (T.mlname t);
+      done;
+      pps f (T.mlname (E.rtype e)) 
+
+    let pp_ml_fdecl f e =
+      let mlname = E.mlname e in
+      ppf f "@[<v 2>@[<h>external %s :@ " mlname;
+      pp_ml_signature f e;
+      ppf f " =@]@,";
+      if E.needs_bytecode e then
+	ppf f "%S@ " (E.extname_bc e);
+      ppf f "%S@]" (E.extname e)
+  
+    let pp_c_fdecl f ?(term=";") e =
+      ppf f "CAMLprim value %s (@[<hv>" (E.extname e);
+      for i = 0 to E.numargs e - 1 do
+	let _,an = E.argi e i in
+	if i > 0 then ppf f ",@ ";
+	ppf f "value %s" an;
+      done;
+      ppf f "@])%s" term
+
+    let pp_c_fdef f e =
+      ppf f "@[<v 0>";
+      pp_c_fdecl f ~term:"" e;
+      ppf f "@ ";
+      pp_ccode f (E.cgenimp e e);
+      ppf f "@]"
+      
+    let pp_c_fdecl_bytecode f ?(term=";") e =
+      ppf f "CAMLprim value %s (value * argv, int argn)%s" (E.extname_bc e) term
+
+    let pp_c_fbody_bytecode f e =
+      ppf f "@[<v 2>{@ return %s (@[<hv>" (E.extname e);
+      for i = 0 to E.numargs e - 1 do
+	if i > 0 then ppf f ",@ ";
+	ppf f "argv[%d]" i
+      done;
+      ppf f "@]);@]@ }"
+
+    let pp_c_fdef_bytecode f e =
+      ppf f "@[<v 0>";
+      pp_c_fdecl_bytecode f ~term:"" e;
+      ppf f "@ ";
+      pp_c_fbody_bytecode f e;
+      ppf f "@]"
+
+    let rec dump e =
+      let b = B.create 1024 in
+      let f = F.formatter_of_buffer b in
+      F.pp_open_vbox f 0;
+      pp_ml_fdecl f e;
+      F.pp_print_cut f ();
+      pp_c_fdecl_bytecode f e;
+      F.pp_print_cut f ();
+      pp_c_fdecl f e;
+      F.pp_print_cut f ();
+      pp_c_fdef_bytecode f e;
+      F.pp_print_cut f ();
+      pp_c_fdef f e;
+      F.pp_close_box f ();
+      F.pp_print_flush f ();
+      B.contents b
   end
 
 (*--------------------------------------------------------------------------*)
@@ -329,12 +422,16 @@ let _ =
   let entries = [
     defun "class_getName"
       [int, "cls"; string, "str"] string 
-      $ wrap_cfun "class_getName";
+      $ wrap_cfun;
     defun "class_warfare"
       [int, "a"; int, "b"; int, "c"; int, "d"; int, "e"; int, "f"] string
-      $ wrap_cfun "class_warfare";
+      $ wrap_cfun;
   ] in
   List.iter (fun x -> print_endline (dump x)) entries
+
+(*--------------------------------------------------------------------------*)
+
+(*--------------------------------------------------------------------------*)
 
 (*--------------------------------------------------------------------------*)
 

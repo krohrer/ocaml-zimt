@@ -42,6 +42,7 @@ module Entry :
       val args		: t -> arg array
       val cgenimp	: t -> cgenimp
       val extname	: t -> name
+      val extname_bc	: t -> name
       val numargs	: t -> int
 
       val argi : entry -> int -> arg
