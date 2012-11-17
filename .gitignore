@@ -4,3 +4,4 @@
 *.cmxa
 *.o
 *.opt
+*.top
