@@ -44,10 +44,11 @@ and _ x =
 | XCall		: ('r,'a) fun' x * ('r,'a) args		-> 'r x
 | XStmtExpr	: st list * 'a x			-> 'a x
 | XIIf		: bool x * 'a x * 'a x			-> 'a x
+| XCast		: 'a type' * 'b x			-> 'a x
 
 and st =
-| CLet		: 'a type' * ident * 'a x option		-> st
-| CComp		: st list					-> st
+| CLet		: 'a type' * ident * 'a x			-> st
+| CBlock	: st list					-> st
 (*| CIf		: int_t x * st * st option			-> st *)
 | CCond		: (int' x * st) list * st option		-> st
 | CFor		: _ x * bool' x * _ x * st			-> st
@@ -106,6 +107,7 @@ module type TYPE_DESC =
     end
 
 module Void	: TYPE with type t = void'
+
 module Int8	: TYPE with type t = int8'
 module Int16	: TYPE with type t = int16'
 module Int32	: TYPE with type t = int32'
