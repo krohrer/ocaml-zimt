@@ -26,7 +26,6 @@ type float' = [ `Float16 | `Float32 | `Float64 ]
 type 'a ptr'
 type 'a array'
 type 'a struct'
-type ('a,'b) fun' (* Iff the function has multiple arguments, 'a is a n-tuple *)
 
 (* C Language description hoisted into OCaml (with some new
 constructs), using type witnesses and GADTs for added compile time
@@ -36,14 +35,13 @@ type 'a type'
 and ('a,'b) field'
 and _ x =
 | XLiteral	: 'a literal				-> 'a x
-| XUnsafeFun	: ('a*'b) literal			-> ('a,'b) fun' x
 | XVar		: 'a var				-> 'a x
 | XOp1		: ('a,'b) op1 * 'a x 			-> 'b x
 | XOp2		: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
 | XDeref	: 'a ptr' x				-> 'a x
 | XField	: 'a x * ('a,'b) field'			-> 'b x
 | XArrSubs	: 'a ptr' x * int' x			-> 'a x
-| XCall		: ('a,'b) fun' x * 'a			-> 'b x
+| XCall		: ('r,'a) fun' x * ('r,'a) args		-> 'r x
 | XStmtExpr	: st list * 'a x			-> 'a x
 | XIIf		: bool x * 'a x * 'a x			-> 'a x
 
@@ -54,6 +52,16 @@ and st =
 | CCond		: (int' x * st) list * st option		-> st
 | CFor		: _ x * bool' x * _ x * st			-> st
 | CSwitch	: 'a x * ('a literal * st) list * st option	-> st
+
+(* Fully typed argument list/tuple *)
+and (_,_) args =
+| AVoid		: ('r,'r) args
+| AApply	: 'a x * ('r,'b) args	-> ('r,'a -> 'b) args
+
+(* Fully typed function signature *)
+and (_,_) fun' =
+| FVoid		: 'r type' -> ('r,'r) fun'
+| FLambda	: 'a type' * ('r,'b) fun' -> ('r,'a -> 'b) fun'
 
 and ident = string
 and 'a var = 'a type' * ident
