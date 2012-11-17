@@ -26,37 +26,37 @@ type float' = [ `Float16 | `Float32 | `Float64 ]
 type 'a ptr'
 type 'a array'
 type 'a struct'
-type ('a,'b) fun'
+type ('a,'b) fun' = 'a -> 'b
 
-(* C Language description hoisted into OCaml (with some new
-constructs), using type witnesses and GADTs for added compile time
-safety. (why write a typechecker when you can use OCaml's?) *)
-
+(* C Language description *)
 type 'a type' = type_repr
 and ('a,'b) field' = field_repr
 and _ x =
-| XLit : 'a lit -> 'a x
-| XVar : 'a var -> 'a x
-| XOp1 : ('a x -> 'b x) lit * 'a x -> 'b x
-| XOp2 : ('a x -> 'b x -> 'c x) lit * 'a x * 'b x -> 'c x
-| XDeref : 'a ptr' x -> 'a x
-| XField : 'a * ('a,'b) field' -> 'b x
-| XArrSubs : 'a ptr' x * int' x -> 'a x
-| XCall : ('a -> 'b x) x * 'a -> 'b x
-| XStmtExpr : st list * 'a x -> 'a x
-| XIIf : bool x * 'a x * 'a x -> 'a x
+| XLiteral	: 'a literal				-> 'a x
+| XUnsafeFun	: ('a*'b) literal			-> ('a,'b) fun' x
+| XVar		: 'a var				-> 'a x
+| XOp1		: ('a,'b) op1 * 'a x 			-> 'b x
+| XOp2		: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
+| XDeref	: 'a ptr' x				-> 'a x
+| XField	: 'a x * ('a,'b) field'			-> 'b x
+| XArrSubs	: 'a ptr' x * int' x			-> 'a x
+| XCall		: ('a,'b) fun' x * 'a x			-> 'b x
+| XStmtExpr	: st list * 'a x			-> 'a x
+| XIIf		: bool x * 'a x * 'a x			-> 'a x
 
 and st =
-| CDecl : 'a type' * ident * 'a x option -> st
-| CComp : st list -> st
-(*| CIf : int_t x * st * st option -> st *)
-| CCond : (int' x * st) list * st option -> st
-| CFor : _ x * bool' x * _ x * st -> st
-| CSwitch : 'a x * ('a lit * st) list * st option -> st
+| CLet		: 'a type' * ident * 'a x option		-> st
+| CComp		: st list					-> st
+(*| CIf		: int_t x * st * st option			-> st *)
+| CCond		: (int' x * st) list * st option		-> st
+| CFor		: _ x * bool' x * _ x * st			-> st
+| CSwitch	: 'a x * ('a literal * st) list * st option	-> st
 
 and ident = string
 and 'a var = 'a type' * ident
-and 'a lit = string
+and 'a literal = string
+and ('a,'b) op1 = 'a -> 'b
+and ('a,'b,'c) op2 = 'a -> 'b -> 'c
 and type_repr = {
     t_name : string;
     t_defined : bool;
@@ -69,6 +69,7 @@ and metatype =
 | MTScalar
 | MTStruct of field_repr list
 
+(* Exceptions *)
 exception AlreadyDefined of string
 
 let already_defined_exc fmt = Printf.ksprintf (fun s -> AlreadyDefined s) fmt
@@ -98,7 +99,8 @@ module type TYPE_DESC =
       val requires : header list
     end
 
-module ScalarType (D : TYPE_DESC) =
+(* Create new scalar types *)
+module ScalarType (D : TYPE_DESC) : TYPE with type t = D.t =
   struct
     type t = D.t
 
