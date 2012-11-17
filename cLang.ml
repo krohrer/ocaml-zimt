@@ -28,7 +28,10 @@ type 'a array'
 type 'a struct'
 type ('a,'b) fun'
 
-(* C Language description hoisted into OCaml (with some new constructs) *)
+(* C Language description hoisted into OCaml (with some new
+constructs), using type witnesses and GADTs for added compile time
+safety. (why write a typechecker when you can use OCaml's?) *)
+
 type 'a type' = type_repr
 and ('a,'b) field' = field_repr
 and _ x =
@@ -259,3 +262,24 @@ module CustomStruct =
     let t = make_type ()
     let r = make_repr ()
   end
+
+module AnotherStruct =
+  struct
+    type s
+    type t = s struct'
+    type 'a f = (t,'a) field'
+
+    include StructMixin
+	(struct
+	  type t = s
+	  let name = "Hello"
+	  let defined = false
+	  let requires = [ `Usr "hello.h" ]
+	end)
+
+    let some_field = add_field Int8.t "someField"
+    let other_field = add_field Float32.t "otherField"
+
+    let t = make_type ()
+    let r = make_repr ()
+end

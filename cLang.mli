@@ -113,8 +113,18 @@ module StructMixin (D : TYPE_DESC) :
 module CustomStruct :
     sig
       type s
-      type 'a f = (s,'a) field'
       include TYPE with type t = s struct'
+      type 'a f = (t,'a) field'
+
+      val some_field : Int8.t f
+      val other_field : Bool.t f
+    end
+
+module AnotherStruct :
+    sig
+      type s
+      include TYPE with type t = s struct'
+      type 'a f = (t,'a) field'
 
       val some_field : Int8.t f
       val other_field : Bool.t f

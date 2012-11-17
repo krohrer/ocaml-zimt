@@ -1,10 +1,15 @@
 .PHONY: clean all run clobber dump
 
-cLang.top: cLang.cmo cLang.cmi
-	ocamlmktop -o cLang.top cLang.cmo
+all:test.opt objc.top foreign.top foreign.opt clang.opt
+
+run: cLang.opt
+	./cLang.opt
 
 cLang.opt: cLang.ml cLang.cmi
 	ocamlopt -o cLang.opt cLang.ml
+
+cLang.top: cLang.cmo cLang.cmi
+	ocamlmktop -o cLang.top cLang.cmo
 
 cLang.cmx cLang.o: cLang.ml cLang.cmi
 	ocamlopt -c cLang.ml
@@ -13,13 +18,8 @@ cLang.cmi: cLang.mli
 cLang.cmo: cLang.ml cLang.cmi
 	ocamlc -c cLang.ml
 
-run: foreign.opt
-	./foreign.opt
-
 dump: testopt
 	otool -L test.opt
-
-all:test.opt objc.top foreign.top foreign.opt clang.opt
 
 foreign.cmi: foreign.mli
 	ocamlopt -c foreign.mli
