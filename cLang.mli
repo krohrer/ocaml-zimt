@@ -38,7 +38,7 @@ and _ x =
 | XDeref	: 'a ptr' x				-> 'a x
 | XField	: 'a x * ('a,'b) field'			-> 'b x
 | XArrSubs	: 'a ptr' x * int' x			-> 'a x
-| XCall		: ('a,'b) fun' x * 'a x			-> 'b x
+| XCall		: ('a,'b) fun' x * 'a			-> 'b x
 | XStmtExpr	: st list * 'a x			-> 'a x
 | XIIf		: bool x * 'a x * 'a x			-> 'a x
 
@@ -91,6 +91,7 @@ module type TYPE_DESC =
       val requires : header list
     end
 
+module Void	: TYPE with type t = void'
 module Int8	: TYPE with type t = int8'
 module Int16	: TYPE with type t = int16'
 module Int32	: TYPE with type t = int32'

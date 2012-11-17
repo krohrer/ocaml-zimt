@@ -40,7 +40,7 @@ and _ x =
 | XDeref	: 'a ptr' x				-> 'a x
 | XField	: 'a x * ('a,'b) field'			-> 'b x
 | XArrSubs	: 'a ptr' x * int' x			-> 'a x
-| XCall		: ('a,'b) fun' x * 'a x			-> 'b x
+| XCall		: ('a,'b) fun' x * 'a			-> 'b x
 | XStmtExpr	: st list * 'a x			-> 'a x
 | XIIf		: bool x * 'a x * 'a x			-> 'a x
 
@@ -66,6 +66,7 @@ and type_repr = {
 and field_repr = ident * type_repr
 and header = [ `Sys of string | `Usr of string ]
 and metatype =
+| MTVoid
 | MTScalar
 | MTStruct of field_repr list
 
@@ -109,6 +110,19 @@ module ScalarType (D : TYPE_DESC) : TYPE with type t = D.t =
       t_defined = D.defined;
       t_requires = D.requires;
       t_metatype = MTScalar;
+    }
+    let r = t
+  end
+
+module Void =
+  struct
+    type t = void'
+
+    let t = {
+      t_name = "void";
+      t_defined = true;
+      t_requires = [];
+      t_metatype = MTVoid;
     }
     let r = t
   end
