@@ -1,5 +1,5 @@
 (* Type witnesses for builtin types *)
-type void'	= [`Void]
+type void'	= unit
 
 type int8'	= [`Int8]
 type int16'	= [`Int16]

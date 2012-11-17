@@ -1,5 +1,10 @@
 (* Type witnesses for builtin types *)
-type void'	= [`Void]
+
+(* void' is not a polymorphic variant on purpose, so it cannot be unified with
+scalar types *)
+type void' = unit
+
+(* Scalar types *)
 type int8'	= [`Int8]
 type int16'	= [`Int16]
 type int32'	= [`Int32]
