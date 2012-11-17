@@ -71,6 +71,8 @@ module TypeRepr :
       val name		: t -> ident
       val defined	: t -> bool
       val requires	: t -> header list
+
+      val of_typed : 'a type' -> t
     end
 
 (* Typed representation of C type *)
@@ -79,7 +81,6 @@ module type TYPE =
     type t (* Type witness / phantom type *)
 
     val t : t type' (* strongly typed representation of C type *)
-    val r : type_repr (* untyped representation of C type, for pretty printing etc. *)
   end
 
 (* Functor argument *)
@@ -111,7 +112,6 @@ module StructMixin (D : TYPE_DESC) :
       val add_field : 'a type' -> ident -> (D.t struct','a) field'
 	  
       val make_type : unit -> D.t struct' type'
-      val make_repr : unit -> TypeRepr.t
     end
 
 module CustomStruct :

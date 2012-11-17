@@ -82,14 +82,14 @@ module TypeRepr =
     let name t		= t.t_name
     let defined t	= t.t_defined
     let requires t	= t.t_requires
+
+    let of_typed t = t
   end
 
 module type TYPE =
     sig
       type t
-
       val t : t type'
-      val r : type_repr
     end
 
 module type TYPE_DESC =
@@ -111,7 +111,6 @@ module ScalarType (D : TYPE_DESC) : TYPE with type t = D.t =
       t_requires = D.requires;
       t_metatype = MTScalar;
     }
-    let r = t
   end
 
 module Void =
@@ -124,7 +123,6 @@ module Void =
       t_requires = [];
       t_metatype = MTVoid;
     }
-    let r = t
   end
     
 module Int8 =
@@ -228,7 +226,6 @@ module StructMixin (D : TYPE_DESC) :
       val add_field : 'a type' -> ident -> (D.t struct','a) field'
     
       val make_type : unit -> D.t struct' type'
-      val make_repr : unit -> TypeRepr.t
     end
     =
   struct
@@ -254,8 +251,6 @@ module StructMixin (D : TYPE_DESC) :
        t_requires = D.requires;
        t_metatype = MTStruct !fields;
      }
-
-    let make_repr () = make_type ()
   end
 
 module CustomStruct =
@@ -276,7 +271,6 @@ module CustomStruct =
     let other_field = add_field Float32.t "otherField"
 
     let t = make_type ()
-    let r = make_repr ()
   end
 
 module AnotherStruct =
@@ -297,5 +291,4 @@ module AnotherStruct =
     let other_field = add_field Float32.t "otherField"
 
     let t = make_type ()
-    let r = make_repr ()
 end
