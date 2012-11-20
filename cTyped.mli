@@ -35,71 +35,73 @@ type 'a const
 constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
-type lval
-type rval
+type mut
+type imm
 
 type 'a t
 and 'a var
+and ('r,'a) fun'
 and ('a,'b) field'
 and (_,_) x =
-  | XLit : 'a lit						-> ('a,rval) x
+  | XLit : 'a lit						-> ('a,imm) x
   | XVar : 'a var						-> ('a,_) x
-  | XLet : 'a t * ('a,'r) x * ('a var -> ('b,rval) x)		-> ('b,rval) x
-  | XSet : ('a,lval) x * ('a,rval) x				-> (void',rval) x
-  | XOp1 : ('a,'b, 'r) op1 * ('a,rval) x			-> ('b,'r) x
-  | XOp2 : ('a,'b,'c, 'r) op2 * ('a,rval) x * ('b,rval) x	-> ('c,'r) x
-  | XCall : (('r,'a) fun',_) x * ('r,'a) args			-> ('r,rval) x
-  | XCond : 'a cond						-> ('a,rval) x
-  | XLoop : ('a,'b) loop					-> ('b,rval) x
-  | XSwitch : ('a,'b) switch					-> ('b,rval) x
-  | XNop :							   (void',rval) x
-  | XIgnore : (_,_) x						-> (void',rval) x
-  | XSequence : (void',_) x * ('a,_) x				-> ('a,rval) x
+  | XLet : 'a t * ('a,imm) x * ('a var -> ('b,imm) x)		-> ('b,imm) x
+  | XFLet : ('r,'a) fsig * ident * 'a				-> (('r,'a) fun',imm) x
+  | XSet : ('a,mut) x * ('a,imm) x				-> (void',imm) x
+  | XOp1 : ('a,'b, 'r) op1 * ('a,imm) x				-> ('b,'r) x
+  | XOp2 : ('a,'b,'c, 'r) op2 * ('a,imm) x * ('b,imm) x		-> ('c,'r) x
+  | XCond : 'a cond						-> ('a,imm) x
+  | XLoop : ('a,'b) loop					-> ('b,imm) x
+  | XSwitch : ('a,'b) switch					-> ('b,imm) x
+  | XNop :							   (void',imm) x
+  | XIgnore : (_,imm) x						-> (void',imm) x
+  | XSeq : (void',imm) x * ('a,imm) x				-> ('a,imm) x
+  | XCall : (('r,'a) fun',imm) x * ('r,'a) args			-> ('r,imm) x
 
 and ('a,'b) loop = {
-    l_init	: ('a,rval) x;
-    l_cond	: (('a,rval) x -> (bool',rval) x);
-    l_step	: (('a,rval) x -> ('a,rval) x);
-    l_body	: (('a,rval) x -> ('b,rval) x);
+    l_init	: ('a,imm) x;
+    l_cond	: (('a,imm) x -> (bool',imm) x);
+    l_step	: (('a,imm) x -> ('a,imm) x);
+    l_body	: (('a,imm) x -> ('b,imm) x);
   }
 
 and ('a,'b) switch = {
-    s_expr	: ('a,rval) x;
-    s_branches	: ('a lit * ('b,rval) x) list;
-    s_else	: ('a,rval) x;
+    s_expr	: ('a,imm) x;
+    s_branches	: ('a lit * ('b,imm) x) list;
+    s_else	: ('a,imm) x;
   }
 
 and 'a cond = {
-    c_branches	: ((bool',rval) x * ('a,rval) x) list;
-    c_else	: ('a,rval) x;
+    c_branches	: ((bool',imm) x * ('a,imm) x) list;
+    c_else	: ('a,imm) x;
   }
 
 (* Fully typed argument list/tuple *)
 and (_,_) args =
-  | AVoid	: 				   ('r,'r) args
-  | AApply	: ('a,_) x * ('r,'b) args	-> ('r,'a -> 'b) args
+  | AVoid	: 				   ('r,('r,imm) x) args
+  | AApply	: ('a,imm) x * ('r,'b) args	-> ('r,'a var -> 'b) args
 
 (* Fully typed function signature *)
-and (_,_) fun' =
-  | FVoid	: 'r t			-> ('r,'r) fun'
-  | FLambda	: 'a t * ('r,'b) fun'	-> ('r,'a -> 'b) fun'
+and (_,_) fsig =
+  | FVoid	: 'r t			-> ('r,('r,imm) x) fsig
+  | FLambda	: 'a t * ('r,'b) fsig	-> ('r,'a var -> 'b) fsig
 
 and (_,_, _) op1 =
-  | O1Arith	: 'a arith1		-> ('a,'a, rval) op1
-  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, rval) op1
-  | O1Logic	: [`Not]		-> (bool',bool', rval) op1
-  | O1Cast	: 'a t			-> ('a,'b, rval) op1
+  | O1Arith	: 'a arith1		-> ('a,'a, imm) op1
+  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, imm) op1
+  | O1Logic	: [`Not]		-> (bool',bool', imm) op1
+  | O1Cast	: 'a t			-> ('a,'b, imm) op1
   | O1Deref	: 			   ('a ptr','a, _) op1
   | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _) op1
   | O1Ref	:			   ('a,'a ptr', _) op1
   | O1SRef	: ('a,'b) field'	-> ('a     ,'b, _) op1
 
 and (_,_,_, _) op2 =
-  | O2Arith	: 'a arith2			-> ('a,'a,'a, rval) op2
-  | O2PArith	: [`Add|`Sub]			-> ('a ptr',[<integers'],'a ptr', rval) op2
-  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, rval) op2
-  | O2Logic	: [`And|`Or]			-> (bool',bool',bool', rval) op2
-  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, rval) op2
+  | O2Arith	: 'a arith2			-> ('a,'a,'a, imm) op2
+  | O2PArith	: [`Add|`Sub]			-> ('a ptr',[<integers'],'a ptr', imm) op2
+  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, imm) op2
+  | O2Logic	: [`And|`Or]			-> (bool',bool',bool', imm) op2
+  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, imm) op2
 
 and _ arith1 =
   | A1Neg	: [<numbers'] arith1
