@@ -42,10 +42,10 @@ type 'a type'
 and ('a,'b) field'
 and (_,_) x =
   | XLit : 'a lit						-> ('a,rval) x
-  | XLet : 'a type' * ('a,_) x * (('a,_) x -> ('b,_) x)		-> ('a,rval) x
-  | XSet : ('a,lval) x * ('a,_) x				-> (void',rval) x
-  | XOp1 : ('a,'b,'la,'b) op1 * ('a,'la) x			-> ('b,'lb) x
-  | XOp2 : ('a,'b,'c,'la,'lb,'lc) op2 * ('a,'la) x * ('b,'lb) x	-> ('c,'lc) x
+  | XLet : 'a type' * ('a,'r) x * (('a,'r) x -> ('b,rval) x) -> ('a,rval) x
+  | XSet : ('a,lval) x * ('a,rval) x				-> (void',rval) x
+  | XOp1 : ('a,'b, 'r) op1 * ('a,rval) x			-> ('b,'r) x
+  | XOp2 : ('a,'b,'c, 'r) op2 * ('a,rval) x * ('b,rval) x	-> ('c,'r) x
   | XCall : (('r,'a) fun',_) x * ('r,'a) args			-> ('r,rval) x
   | XCond : 'a cond						-> ('a,rval) x
   | XLoop : ('a,'b) loop					-> ('b,rval) x
@@ -55,21 +55,21 @@ and (_,_) x =
   | XSequence : (void',_) x * ('a,_) x				-> ('a,rval) x
 
 and ('a,'b) loop = {
-    l_init	: 'q    . ('a,'q) x;
-    l_cond	: 'q 'r . (('a,'q) x -> (bool','r) x);
-    l_step	: 'q 'r . (('a,'q) x -> ('a,'r) x);
-    l_body	: 'q 'r . (('a,'q) x -> ('b,'r) x);
+    l_init	: ('a,rval) x;
+    l_cond	: (('a,rval) x -> (bool',rval) x);
+    l_step	: (('a,rval) x -> ('a,rval) x);
+    l_body	: (('a,rval) x -> ('b,rval) x);
   }
 
 and ('a,'b) switch = {
-    s_expr	: 'q . ('a,'q) x;
-    s_branches	: 'q . ('a lit * ('b,'q) x) list;
-    s_else	: 'q . ('a,'q) x;
+    s_expr	: ('a,rval) x;
+    s_branches	: ('a lit * ('b,rval) x) list;
+    s_else	: ('a,rval) x;
   }
 
 and 'a cond = {
-    c_branches	: 'q 'r . ((bool','q) x * ('a,'r) x) list;
-    c_else	: 'q    . ('a,'q) x;
+    c_branches	: ((bool',rval) x * ('a,rval) x) list;
+    c_else	: ('a,rval) x;
   }
 
 (* Fully typed argument list/tuple *)
@@ -82,21 +82,22 @@ and (_,_) fun' =
   | FVoid	: 'r type'			-> ('r,'r) fun'
   | FLambda	: 'a type' * ('r,'b) fun'	-> ('r,'a -> 'b) fun'
 
-and (_,_, _,_) op1 =
-  | O1Arith	: 'a arith1		-> ('a,'a, _,_) op1
-  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, _,_) op1
-  | O1Logic	: [`Not]		-> (bool',bool', _,_) op1
-  | O1Cast	: 'a type'		-> ('a,'b, _,rval) op1
-  | O1Deref	: 			   ('a ptr','a, _,lval) op1
-  | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _,lval) op1
-  | O1Ref	:			   ('a,'a ptr', _,rval) op1
-  | O1SRef	: ('a,'b) field'	-> ('a     ,'b, _,lval) op1
+and (_,_, _) op1 =
+  | O1Arith	: 'a arith1		-> ('a,'a, rval) op1
+  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, rval) op1
+  | O1Logic	: [`Not]		-> (bool',bool', rval) op1
+  | O1Cast	: 'a type'		-> ('a,'b, rval) op1
+  | O1Deref	: 			   ('a ptr','a, _) op1
+  | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _) op1
+  | O1Ref	:			   ('a,'a ptr', _) op1
+  | O1SRef	: ('a,'b) field'	-> ('a     ,'b, _) op1
 
-and (_,_,_,_,_,_) op2 =
-  | O2Arith	: 'a arith2			-> ('a,'a,'a, _,_,rval) op2
-  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, _,_,rval) op2
-  | O2Logic	: [`And|`Or]			-> (bool',bool',bool', _,_,rval) op2
-  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, _,_,rval) op2
+and (_,_,_, _) op2 =
+  | O2Arith	: 'a arith2			-> ('a,'a,'a, rval) op2
+  | O2PArith	: [`Add|`Sub]			-> ('a ptr',[<integers'],'a ptr', rval) op2
+  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, rval) op2
+  | O2Logic	: [`And|`Or]			-> (bool',bool',bool', rval) op2
+  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, rval) op2
 
 and _ arith1 =
   | A1Neg	: [<numbers'] arith1
