@@ -35,50 +35,68 @@ type 'a const
 constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
+type lval
+type rval
+
 type 'a type'
 and ('a,'b) field'
-and _ x =
-  | XLit	: 'a lit				-> 'a x
-  | XOp1	: ('a,'b) op1 * 'a x 			-> 'b x
-  | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x		-> 'c x
-  | XCall	: ('r,'a) fun' x * ('r,'a) args		-> 'r x
-  | XStmtExpr	: st list * 'a x			-> 'a x
-  | XIIf	: bool x * 'a x * 'a x			-> 'a x
+and (_,_) x =
+  | XLit : 'a lit						-> ('a,rval) x
+  | XLet : 'a type' * ('a,_) x * (('a,_) x -> ('b,_) x)		-> ('a,rval) x
+  | XSet : ('a,lval) x * ('a,_) x				-> (void',rval) x
+  | XOp1 : ('a,'b,'la,'b) op1 * ('a,'la) x			-> ('b,'lb) x
+  | XOp2 : ('a,'b,'c,'la,'lb,'lc) op2 * ('a,'la) x * ('b,'lb) x	-> ('c,'lc) x
+  | XCall : (('r,'a) fun',_) x * ('r,'a) args			-> ('r,rval) x
+  | XCond : 'a cond						-> ('a,rval) x
+  | XLoop : ('a,'b) loop					-> ('b,rval) x
+  | XSwitch : ('a,'b) switch					-> ('b,rval) x
+  | XNop :							   (void',rval) x
+  | XIgnore : (_,_) x						-> (void',rval) x
+  | XSequence : (void',_) x * ('a,_) x				-> ('a,rval) x
 
-and st =
-  | CLet	: 'a type' * ident * 'a x		-> st
-  | CBlock	: st list				-> st
-(*| CIf		: int_t x * st * st option		-> st *)
-  | CCond	: (bool' x * st) list * st option	-> st
-  | CFor	: _ x * bool' x * _ x * st		-> st
-  | CSwitch	:
-      ([<integers'] as 'a) x * ('a lit * st) list * st option -> st
+and ('a,'b) loop = {
+    l_init	: 'q    . ('a,'q) x;
+    l_cond	: 'q 'r . (('a,'q) x -> (bool','r) x);
+    l_step	: 'q 'r . (('a,'q) x -> ('a,'r) x);
+    l_body	: 'q 'r . (('a,'q) x -> ('b,'r) x);
+  }
+
+and ('a,'b) switch = {
+    s_expr	: 'q . ('a,'q) x;
+    s_branches	: 'q . ('a lit * ('b,'q) x) list;
+    s_else	: 'q . ('a,'q) x;
+  }
+
+and 'a cond = {
+    c_branches	: 'q 'r . ((bool','q) x * ('a,'r) x) list;
+    c_else	: 'q    . ('a,'q) x;
+  }
 
 (* Fully typed argument list/tuple *)
 and (_,_) args =
-  | AVoid	: ('r,'r) args
-  | AApply	: 'a x * ('r,'b) args	-> ('r,'a -> 'b) args
+  | AVoid	: 				   ('r,'r) args
+  | AApply	: ('a,_) x * ('r,'b) args	-> ('r,'a -> 'b) args
 
 (* Fully typed function signature *)
 and (_,_) fun' =
-  | FVoid	: 'r type' -> ('r,'r) fun'
-  | FLambda	: 'a type' * ident * ('r,'b) fun' -> ('r,'a -> 'b) fun'
+  | FVoid	: 'r type'			-> ('r,'r) fun'
+  | FLambda	: 'a type' * ('r,'b) fun'	-> ('r,'a -> 'b) fun'
 
-and (_,_) op1 =
-  | O1Arith	: 'a arith1		-> ('a,'a) op1
-  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a) op1
-  | O1Logic	: [`Not]		-> (bool',bool') op1
-  | O1Cast	: 'a type'		-> ('a,'b) op1
-  | O1Deref	: ('a ptr','a) op1
-  | O1Ref	: ('a,'a ptr') op1
-  | O1SDeref	: ('a,'b) field'	-> ('a ptr','b) op1
-  | O1SRef	: ('a,'b) field'	-> ('a,'b) op1
+and (_,_, _,_) op1 =
+  | O1Arith	: 'a arith1		-> ('a,'a, _,_) op1
+  | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, _,_) op1
+  | O1Logic	: [`Not]		-> (bool',bool', _,_) op1
+  | O1Cast	: 'a type'		-> ('a,'b, _,rval) op1
+  | O1Deref	: 			   ('a ptr','a, _,lval) op1
+  | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _,lval) op1
+  | O1Ref	:			   ('a,'a ptr', _,rval) op1
+  | O1SRef	: ('a,'b) field'	-> ('a     ,'b, _,lval) op1
 
-and (_,_,_) op2 =
-  | O2Arith	: 'a arith2			-> ('a,'a,'a) op2
-  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a) op2
-  | O2Logic	: [`And|`Or]			-> (bool',bool',bool') op2
-  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a) op2
+and (_,_,_,_,_,_) op2 =
+  | O2Arith	: 'a arith2			-> ('a,'a,'a, _,_,rval) op2
+  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, _,_,rval) op2
+  | O2Logic	: [`And|`Or]			-> (bool',bool',bool', _,_,rval) op2
+  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, _,_,rval) op2
 
 and _ arith1 =
   | A1Neg	: [<numbers'] arith1
@@ -106,11 +124,6 @@ and _ lit =
   | LUInt64	: int64 -> uint64' lit
   | LFloat32	: float -> float32' lit
   | LFloat64	: float -> float64' lit
-  | LQuoted	: string -> 'a lit
   | LStr	: string -> int8' const ptr' lit
 
 and ident = string
-and 'a var = 'a type' * ident
-and type_repr
-and field_repr
-and header = [ `Sys of string | `Usr of string ]
