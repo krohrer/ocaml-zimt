@@ -19,9 +19,12 @@ type float16'	= [`Float16]
 type float32'	= [`Float32]
 type float64'	= [`Float64]
 (* Builtin type families *)
-type int' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
-type uint' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
-type float' = [ `Float16 | `Float32 | `Float64 ]
+type sints' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
+type uints' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
+type floats' = [ `Float16 | `Float32 | `Float64 ]
+type integers' = [sint'|uint']
+type numbers' = [integers'|float']
+type signums' = [sint'|float']
 (* Builtin composite types *)
 type 'a ptr'
 type 'a array'
@@ -36,16 +39,12 @@ type 'a type'
 and ('a,'b) field'
 and _ x =
   | XLit	: 'a lit				-> 'a x
-  | XVar	: 'a var				-> 'a x
-  | XOp1	: ('a,'b) op1 * 'a x 			-> 'b x
-  | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
-  | XDeref	: 'a ptr' x				-> 'a x
+  | XOp1	: ('a,'b) unop * 'a x 			-> 'b x
+  | XOp2	: ('a,'b,'c) binop * 'a x * 'b x	-> 'c x
   | XField	: 'a x * ('a,'b) field'			-> 'b x
-  | XArrSubs	: 'a ptr' x * [<int'|uint'] x		-> 'a x
   | XCall	: ('r,'a) fun' x * ('r,'a) args		-> 'r x
   | XStmtExpr	: st list * 'a x			-> 'a x
   | XIIf	: bool x * 'a x * 'a x			-> 'a x
-  | XCast	: 'a type' * 'b x			-> 'a x
 
 and st =
   | CLet	: 'a type' * ident * 'a x		-> st
@@ -66,7 +65,17 @@ and (_,_) fun' =
   | FVoid	: 'r type' -> ('r,'r) fun'
   | FLambda	: 'a type' * ident * ('r,'b) fun' -> ('r,'a -> 'b) fun'
 
-and 'a lit = 
+and (_,_) unop =
+  | OpNeg	: ([<signums'] as 'a,'a) unop
+  | OpCast	: 'a type' -> ('a,'b) unop
+  | OpDeref	: ('a ptr,'a) unop
+  | OpSizeof	: ('a, natint') unop
+  | OpPreInc	: ([<integers'] as 'a,'a) unop
+
+and (_,_,_) binop =
+  | OpAdd	: (
+
+and _ lit = 
   | LInt8	: int -> int8' lit
   | LInt16	: int -> int16' lit
   | LInt32	: int32 -> int32' lit
@@ -179,6 +188,11 @@ module StructMixin (D : TYPE_DESC) :
       val add_field : 'a type' -> ident -> (D.t struct','a) field'
 	  
       val make_type : unit -> D.t struct' type'
+    end
+
+module EnumMixin (D : TYPE_DESC) :
+    sig
+      val add_const : ident -> int' lit -> unit
     end
 
 module CustomStruct :

@@ -5,28 +5,26 @@ type int8'	= [`Int8]
 type int16'	= [`Int16]
 type int32'	= [`Int32]
 type int64'	= [`Int64]
-
 type natint'	= [`NatInt]
-
 type uint8'	= [`UInt8]
 type uint16'	= [`UInt16]
 type uint32'	= [`UInt32]
 type uint64'	= [`UInt64]
-
 type bool'	= [`Bool]
-
 type float16'	= [`Float16]
 type float32'	= [`Float32]
 type float64'	= [`Float64]
 
-type int' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
-type uint' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
-type float' = [ `Float16 | `Float32 | `Float64 ]
+type ints' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
+type uints' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
+type floats' = [ `Float16 | `Float32 | `Float64 ]
+type integers' = [int'|uint']
+type numbers' = [integers'|float']
+type signums' = [int'|float']
 
 type 'a ptr'
 type 'a array'
 type 'a struct'
-
 type 'a const
 
 (* C Language description *)
@@ -34,12 +32,9 @@ type 'a type' = type_repr
 and ('a,'b) field' = field_repr
 and _ x =
   | XLit	: 'a lit				-> 'a x
-  | XVar	: 'a var				-> 'a x
-  | XOp1	: ('a,'b) op1 * 'a x 			-> 'b x
-  | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
-  | XDeref	: 'a ptr' x				-> 'a x
+  | XOp1	: ('a,'b) unop * 'a x 			-> 'b x
+  | XOp2	: ('a,'b,'c) binop * 'a x * 'b x	-> 'c x
   | XField	: 'a x * ('a,'b) field'			-> 'b x
-  | XArrSubs	: 'a ptr' x * [< int' | uint' ] x	-> 'a x
   | XCall	: ('r,'a) fun' x * ('r,'a) args		-> 'r x
   | XStmtExpr	: st list * 'a x			-> 'a x
   | XIIf	: bool x * 'a x * 'a x			-> 'a x
@@ -61,6 +56,13 @@ and (_,_) args =
 and (_,_) fun' =
   | FVoid	: 'r type' -> ('r,'r) fun'
   | FLambda	: 'a type' * ident * ('r,'b) fun' -> ('r,'a -> 'b) fun'
+
+and (_,_) unop =
+  | OpNeg	: ([<int'|float'] as 'a,'a) unop
+  | OpCast	: 'a type' -> ('a,'b) unop
+  | OpDeref	: ('a ptr,'a) unop
+  | OpSizeof	: ('a, natint') unop
+  | OpPreInc	: ([<int'|uint'] as 'a,'a) unop
 
 and 'a lit = 
   | LInt8	: int -> int8' lit

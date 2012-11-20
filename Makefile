@@ -1,5 +1,8 @@
 .PHONY: clean all run clobber dump
 
+c.cmi: c.mli
+	ocamlc -c c.mli
+
 all:test.opt objc.top foreign.top foreign.opt cLang.opt cLang.top
 
 cLang.opt: cLang.cmx cLang.cmi
