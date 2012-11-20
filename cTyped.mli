@@ -38,11 +38,13 @@ safety. (why write a typechecker when you can use OCaml's?) *)
 type lval
 type rval
 
-type 'a type'
+type 'a t
+and 'a var
 and ('a,'b) field'
 and (_,_) x =
   | XLit : 'a lit						-> ('a,rval) x
-  | XLet : 'a type' * ('a,'r) x * (('a,'r) x -> ('b,rval) x) -> ('a,rval) x
+  | XVar : 'a var						-> ('a,_) x
+  | XLet : 'a t * ('a,'r) x * ('a var -> ('b,rval) x)		-> ('b,rval) x
   | XSet : ('a,lval) x * ('a,rval) x				-> (void',rval) x
   | XOp1 : ('a,'b, 'r) op1 * ('a,rval) x			-> ('b,'r) x
   | XOp2 : ('a,'b,'c, 'r) op2 * ('a,rval) x * ('b,rval) x	-> ('c,'r) x
@@ -79,14 +81,14 @@ and (_,_) args =
 
 (* Fully typed function signature *)
 and (_,_) fun' =
-  | FVoid	: 'r type'			-> ('r,'r) fun'
-  | FLambda	: 'a type' * ('r,'b) fun'	-> ('r,'a -> 'b) fun'
+  | FVoid	: 'r t			-> ('r,'r) fun'
+  | FLambda	: 'a t * ('r,'b) fun'	-> ('r,'a -> 'b) fun'
 
 and (_,_, _) op1 =
   | O1Arith	: 'a arith1		-> ('a,'a, rval) op1
   | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, rval) op1
   | O1Logic	: [`Not]		-> (bool',bool', rval) op1
-  | O1Cast	: 'a type'		-> ('a,'b, rval) op1
+  | O1Cast	: 'a t			-> ('a,'b, rval) op1
   | O1Deref	: 			   ('a ptr','a, _) op1
   | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _) op1
   | O1Ref	:			   ('a,'a ptr', _) op1
