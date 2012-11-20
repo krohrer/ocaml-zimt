@@ -6,7 +6,7 @@ cLang.opt: cLang.cmx cLang.cmi
 	ocamlopt -o cLang.opt cLang.cmx
 
 cLang.top: cLang.cmo cLang.cmi
-	ocamlmktop -o cLang.top cLang.cmo
+	ocamlfind ocamlmktop -syntax camlp4o -package monad -o cLang.top cLang.cmo
 
 cLang.cmx cLang.o: cLang.ml cLang.cmi
 	ocamlopt -c cLang.ml

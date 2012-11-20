@@ -27,41 +27,58 @@ type 'a ptr'
 type 'a array'
 type 'a struct'
 
+type 'a const
+
 (* C Language description *)
 type 'a type' = type_repr
 and ('a,'b) field' = field_repr
 and _ x =
-| XLiteral	: 'a literal				-> 'a x
-| XVar		: 'a var				-> 'a x
-| XOp1		: ('a,'b) op1 * 'a x 			-> 'b x
-| XOp2		: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
-| XDeref	: 'a ptr' x				-> 'a x
-| XField	: 'a x * ('a,'b) field'			-> 'b x
-| XArrSubs	: 'a ptr' x * int' x			-> 'a x
-| XCall		: ('r,'a) fun' x * ('r,'a) args		-> 'r x
-| XStmtExpr	: st list * 'a x			-> 'a x
-| XIIf		: bool x * 'a x * 'a x			-> 'a x
-| XCast		: 'a type' * 'b x			-> 'a x
+  | XLit	: 'a lit				-> 'a x
+  | XVar	: 'a var				-> 'a x
+  | XOp1	: ('a,'b) op1 * 'a x 			-> 'b x
+  | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x 		-> 'c x
+  | XDeref	: 'a ptr' x				-> 'a x
+  | XField	: 'a x * ('a,'b) field'			-> 'b x
+  | XArrSubs	: 'a ptr' x * [< int' | uint' ] x	-> 'a x
+  | XCall	: ('r,'a) fun' x * ('r,'a) args		-> 'r x
+  | XStmtExpr	: st list * 'a x			-> 'a x
+  | XIIf	: bool x * 'a x * 'a x			-> 'a x
+  | XCast	: 'a type' * 'b x			-> 'a x
 
 and st =
-| CLet		: 'a type' * ident * 'a x			-> st
-| CBlock	: st list					-> st
-(*| CIf		: int_t x * st * st option			-> st *)
-| CCond		: (int' x * st) list * st option		-> st
-| CFor		: _ x * bool' x * _ x * st			-> st
-| CSwitch	: 'a x * ('a literal * st) list * st option	-> st
+  | CLet	: 'a type' * ident * 'a x		-> st
+  | CBlock	: st list				-> st
+(*| CIf		: int_t x * st * st option		-> st *)
+  | CCond	: (int' x * st) list * st option	-> st
+  | CFor	: _ x * bool' x * _ x * st		-> st
+  | CSwitch	: 
+      ([< int'|uint'] as 'a) x * ('a lit * st) list * st option -> st
 
 and (_,_) args =
-| AVoid		: ('r,'r) args
-| AApply	: 'a x * ('r,'b) args	-> ('r,'a -> 'b) args
+  | AVoid	: ('r,'r) args
+  | AApply	: 'a x * ('r,'b) args	-> ('r,'a -> 'b) args
 
 and (_,_) fun' =
-| FVoid		: 'r type' -> ('r,'r) fun'
-| FLambda	: 'a type' * ('r,'b) fun' -> ('r,'a -> 'b) fun'
+  | FVoid	: 'r type' -> ('r,'r) fun'
+  | FLambda	: 'a type' * ident * ('r,'b) fun' -> ('r,'a -> 'b) fun'
+
+and 'a lit = 
+  | LInt8	: int -> int8' lit
+  | LInt16	: int -> int16' lit
+  | LInt32	: int32 -> int32' lit
+  | LInt64	: int64 -> int64' lit
+  | LNatInt	: nativeint -> natint' lit
+  | LUInt8	: int -> uint8' lit
+  | LUInt16	: int -> uint16' lit
+  | LUInt32	: int64 -> uint32' lit
+  | LUInt64	: int64 -> uint64' lit
+  | LFloat32	: float -> float32' lit
+  | LFloat64	: float -> float64' lit
+  | LQuoted	: string -> 'a lit
+  | LStr	: string -> int8' const ptr' lit
 
 and ident = string
 and 'a var = 'a type' * ident
-and 'a literal = string
 and ('a,'b) op1 = 'a -> 'b
 and ('a,'b,'c) op2 = 'a -> 'b -> 'c
 and type_repr = {
