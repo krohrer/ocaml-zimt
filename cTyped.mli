@@ -26,7 +26,7 @@ type integers' = [sints'|uints']
 type numbers' = [integers'|floats']
 type signums' = [sints'|floats']
 (* Builtin composite types *)
-type 'a ptr'
+type 'a ptr
 type 'a array'
 type 'a struct'
 type 'a const
@@ -41,7 +41,7 @@ type imm
 type 'a t
 and 'a var
 and ('r,'a) fun'
-and ('a,'b) field'
+and ('a,'b) field
 and (_,_) x =
   | XLit : 'a lit						-> ('a,imm) x
   | XVar : 'a var						-> ('a,_) x
@@ -93,14 +93,14 @@ and (_,_, _) op1 =
   | O1Bit	: [`Not]		-> ([<integers'] as 'a,'a, imm) op1
   | O1Logic	: [`Not]		-> (bool',bool', imm) op1
   | O1Cast	: 'a t			-> ('a,'b, imm) op1
-  | O1Deref	: 			   ('a ptr','a, _) op1
-  | O1SDeref	: ('a,'b) field'	-> ('a ptr','b, _) op1
-  | O1Ref	:			   ('a,'a ptr', _) op1
-  | O1SRef	: ('a,'b) field'	-> ('a     ,'b, _) op1
+  | O1Deref	: 			   ('a ptr,'a, _) op1
+  | O1SDeref	: ('a,'b) field		-> ('a ptr,'b, _) op1
+  | O1Ref	:			   ('a,'a ptr, _) op1
+  | O1SRef	: ('a,'b) field		-> ('a     ,'b, _) op1
 
 and (_,_,_, _) op2 =
   | O2Arith	: 'a arith2			-> ('a,'a,'a, imm) op2
-  | O2PArith	: [`Add|`Sub]			-> ('a ptr',[<integers'],'a ptr', imm) op2
+  | O2PArith	: [`Add|`Sub]			-> ('a ptr,[<integers'],'a ptr, imm) op2
   | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ([<numbers'|bool'] as 'a,'a,'a, imm) op2
   | O2Logic	: [`And|`Or]			-> (bool',bool',bool', imm) op2
   | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> ([<integers'] as 'a,'a,'a, imm) op2
@@ -131,6 +131,6 @@ and _ lit =
   | LUInt64	: int64 -> uint64' lit
   | LFloat32	: float -> float32' lit
   | LFloat64	: float -> float64' lit
-  | LStr	: string -> int8' const ptr' lit
+  | LStr	: string -> int8' const ptr lit
 
 and ident = string
