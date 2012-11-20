@@ -1,14 +1,46 @@
-type t = string
-and field' = string
+type t = {
+    t_qualifiers : qualifiers;
+    t_requires : header list;
+    t_metatype : metatype;
+  }
+
+and metatype =
+  | TFPtr of t * t array
+  | TPtr of t
+  | TArray of t * int
+  | TEnum of ident option * (lit * x option) list
+  | TUnion of ident option * field list
+  | TStruct of ident option * field list
+  | TBool
+  | TInt of bits
+  | TUnsigned of bits
+  | TFloat
+  | TDouble
+  | TCamlValue
+  | TVoid
+  | TRef of ident
+  | TRefEnum of ident
+  | TRefUnion of ident
+  | TRefStruct of ident
+
+and bits = int
+and qualifiers = [`Const|`Static|`Extern] list
+
+and ident = string
+and header = string
+and field = string
+
 and x =
   | XQuote of string
   | XLit of lit
   | XVar of ident
-  | XCall of x * x array
+  | XCall of x * x list
   | XOp1 of op1 * x
   | XOp2 of op2 * x * x
   | XStmtExpr of st list * x
   | XIIf of x * x * x
+  | XInit of x list
+  | XDInit of (ident * x) list
 
 and st =
   | StExpr of x
@@ -22,18 +54,13 @@ and st =
   | StNop
   | StBreak
   | StContinue
+  | StReturn of x
 
 and decl =
-  | DFun of t * ident * t array * x
+  | DFun of t * ident * t list * x
   | DVar of t * ident * x option
 
 and tlunit = decl list
-
-and switch = {
-    s_expr	: x;
-    s_branches	: (lit * x) list;
-    s_else	: x;
-  }
 
 and op1 =
   | Op1Arith of [`Neg|`PreInc|`PreDec|`PostInc|`PostDec]
@@ -41,9 +68,9 @@ and op1 =
   | Op1Logic of [`Not]
   | Op1Cast of t
   | Op1Deref
-  | Op1SDeref of field'
+  | Op1SDeref of field
   | Op1Ref
-  | Op1SRef of field'
+  | Op1SRef of field
 
 and op2 =
   | Op2Assign
@@ -65,6 +92,5 @@ and lit =
   | LUInt64 of int64
   | LFloat32 of float
   | LFloat64 of float
+  | LQuote of string
   | LStr of string
-
-and ident = string
