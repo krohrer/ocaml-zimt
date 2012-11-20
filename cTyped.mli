@@ -46,7 +46,10 @@ and (_,_) x =
   | XLit : 'a lit						-> ('a,imm) x
   | XVar : 'a var						-> ('a,_) x
   | XLet : 'a t * ('a,imm) x * ('a var -> ('b,imm) x)		-> ('b,imm) x
+  | XLetN : 'a t * ident * ('a,imm) x * ('a var -> ('b,imm) x)	-> ('b,imm) x
+  | XFExt : ('r,'a) fsig * ident				-> (('r,'a) fun',imm) x
   | XFLet : ('r,'a) fsig * ident * 'a				-> (('r,'a) fun',imm) x
+  | XCall : (('r,'a) fun',imm) x * ('r,'a) args			-> ('r,imm) x
   | XSet : ('a,mut) x * ('a,imm) x				-> (void',imm) x
   | XOp1 : ('a,'b, 'r) op1 * ('a,imm) x				-> ('b,'r) x
   | XOp2 : ('a,'b,'c, 'r) op2 * ('a,imm) x * ('b,imm) x		-> ('c,'r) x
@@ -56,7 +59,6 @@ and (_,_) x =
   | XNop :							   (void',imm) x
   | XIgnore : (_,imm) x						-> (void',imm) x
   | XSeq : (void',imm) x * ('a,imm) x				-> ('a,imm) x
-  | XCall : (('r,'a) fun',imm) x * ('r,'a) args			-> ('r,imm) x
 
 and ('a,'b) loop = {
     l_init	: ('a,imm) x;
