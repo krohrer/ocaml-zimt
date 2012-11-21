@@ -74,11 +74,12 @@ and op1 =
 
 and op2 =
   | Op2Assign
+  | Op2ArrSubs
   | Op2Arith of [`Add|`Sub|`Mul|`Div|`Mod]
-  | Op2PArith of [`Add|`Sub]
   | Op2Comp of [`Eq|`NE|`Gt|`Lt|`GE|`LE]
   | Op2Logic of [`And|`Or]
   | Op2Bit of [`And|`Or|`Xor|`Shl|`Shr]
+  | Op2Comma
 
 and lit = 
   | LInt8 of int
