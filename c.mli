@@ -33,11 +33,11 @@ and field = string
 and x =
   | XQuote of string
   | XLit of lit
-  | XVar of ident
+  | XIdent of ident
   | XCall of x * x list
   | XOp1 of op1 * x
   | XOp2 of op2 * x * x
-  | XStmtExpr of st list * x
+  | XStmtExpr of st list
   | XIIf of x * x * x
   | XInit of x list
   | XDInit of (ident * x) list
@@ -82,16 +82,15 @@ and op2 =
   | Op2Comma
 
 and lit = 
-  | LInt8 of int
-  | LInt16 of int
+  | LInt of int
   | LInt32 of int32
   | LInt64 of int64
-  | LNatInt of nativeint
-  | LUInt8 of int
-  | LUInt16 of int
+
+  | LUInt of int
   | LUInt32 of int32
   | LUInt64 of int64
+
   | LFloat32 of float
   | LFloat64 of float
-  | LQuote of string
+
   | LStr of string
