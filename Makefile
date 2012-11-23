@@ -1,15 +1,15 @@
 .PHONY: clean all run clobber dump
 
-all: cPrinter.cmo
+all: c_PrettyPrinter.cmo
 #all:test.opt objc.top foreign.top foreign.opt cLang.opt cLang.top
 
-cPrinter.cmo: cPrinter.ml cPrinter.cmi c_SyntaxUntyped.cmi
-	ocamlc -c cPrinter.ml
-cPrinter.cmi: cPrinter.mli c_SyntaxUntyped.cmi
-	ocamlc -c cPrinter.mli
+c_PrettyPrinter.cmo: c_PrettyPrinter.ml c_PrettyPrinter.cmi c_UntypedAST.cmi
+	ocamlc -c c_PrettyPrinter.ml
+c_PrettyPrinter.cmi: c_PrettyPrinter.mli c_UntypedAST.cmi
+	ocamlc -c c_PrettyPrinter.mli
 
-c_SyntaxUntyped.cmi: c_SyntaxUntyped.mli
-	ocamlc -c c_SyntaxUntyped.mli
+c_UntypedAST.cmi: c_UntypedAST.mli
+	ocamlc -c c_UntypedAST.mli
 
 cTyped.cmi: cTyped.mli
 	ocamlc -c cTyped.mli
