@@ -27,7 +27,7 @@ and qualifiers = [`Const|`Static|`Extern] list
 
 and ident = string
 and header = string
-and field = string
+and field = ident
 
 and x =
   | XQuote of string
@@ -67,17 +67,17 @@ and op1 =
   | Op1Logic of [`Not]
   | Op1Cast of t
   | Op1Deref
-  | Op1SDeref of field
+  | Op1StructDeref of field
   | Op1Ref
-  | Op1SRef of field
+  | Op1StructRef of field
 
 and op2 =
   | Op2Assign
-  | Op2ArrSubs
+  | Op2Subscript
   | Op2Arith of [`Add|`Sub|`Mul|`Div|`Mod]
   | Op2Comp of [`Eq|`NE|`Gt|`Lt|`GE|`LE]
   | Op2Logic of [`And|`Or]
-  | Op2Bit of [`And|`Or|`Xor|`Shl|`Shr]
+  | Op2Bit of [`And|`Or|`Xor|`ShiftL|`ShiftR]
   | Op2Comma
 
 and lit = 
