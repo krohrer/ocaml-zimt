@@ -3,13 +3,13 @@
 all: cPrinter.cmo
 #all:test.opt objc.top foreign.top foreign.opt cLang.opt cLang.top
 
-cPrinter.cmo: cPrinter.ml cPrinter.cmi c.cmi
+cPrinter.cmo: cPrinter.ml cPrinter.cmi c_SyntaxUntyped.cmi
 	ocamlc -c cPrinter.ml
-cPrinter.cmi: cPrinter.mli c.cmi
+cPrinter.cmi: cPrinter.mli c_SyntaxUntyped.cmi
 	ocamlc -c cPrinter.mli
 
-c.cmi: c.mli
-	ocamlc -c c.mli
+c_SyntaxUntyped.cmi: c_SyntaxUntyped.mli
+	ocamlc -c c_SyntaxUntyped.mli
 
 cTyped.cmi: cTyped.mli
 	ocamlc -c cTyped.mli

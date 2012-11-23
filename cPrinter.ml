@@ -1,4 +1,4 @@
-open C
+open C_SyntaxUntyped
 open Printf
 module F = Format
 
@@ -35,7 +35,7 @@ let rec expr_precedence = function
   | XIIf (_,_,_)	-> 15
   (* We don't know what the quoted string contains, so we simply give
   it a very low precedence *)
-  | XQuote s		-> 9999
+  | XQuote s		-> 999999
 and call_precedence = 2
 and lit_precedence = function
   (* Negative numbers have the same precedence as Op1Arith `Neg *)

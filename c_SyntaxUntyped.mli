@@ -3,7 +3,6 @@ type t = {
     t_requires : header list;
     t_metatype : metatype;
   }
-
 and metatype =
   | TFPtr of t * t array
   | TPtr of t
@@ -85,12 +84,9 @@ and lit =
   | LInt of int
   | LInt32 of int32
   | LInt64 of int64
-
   | LUInt of int
   | LUInt32 of int32
   | LUInt64 of int64
-
   | LFloat32 of float
   | LFloat64 of float
-
   | LStr of string
