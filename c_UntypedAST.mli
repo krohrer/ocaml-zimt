@@ -1,32 +1,34 @@
-type t = {
-    t_qualifiers : qualifiers;
-    t_requires : header list;
-    t_metatype : metatype;
-  }
-and metatype =
-  | TFPtr of t * t array
-  | TPtr of t
-  | TArray of t * int
-  | TEnum of ident option * (lit * x option) list
-  | TUnion of ident option * field list
-  | TStruct of ident option * field list
-  | TBool
-  | TInt of bits
-  | TUnsigned of bits
+type t = type_qual list * type_spec
+and type_spec = 
+  | TVoid
+  | TChar of sign_spec
+  | TShort of sign_spec
+  | TInt of sign_spec
+  | TLong of sign_spec
+  | TLongLong of sign_spec
   | TFloat
   | TDouble
-  | TCamlValue
-  | TVoid
+  | TLongDouble
+  | TBool
+  | TStructRef of ident
+  | TUnionRef of ident
+  | TEnumRef of ident
   | TRef of ident
-  | TRefEnum of ident
-  | TRefUnion of ident
-  | TRefStruct of ident
-
-and bits = int
-and qualifiers = [`Const|`Static|`Extern] list
-
+  | TPointer of t
+  | TFunc of t * t list * varargs
+  | TArray of t * array_sizes
+and varargs = bool
+and type_qual = [`const | `restrict | `volatile]
 and ident = string
-and header = string
+and sign_spec = [`unsigned | `signed | `default]
+and field_decl = 
+  | FField of t * ident
+  | FBitField of t * ident * int
+  | FBitPadding of type_spec * int
+and enumerator = ident * x option
+and declaration = storage_class * t
+and storage_class = [`extern | `static | `auto | `register]
+and array_sizes = int array
 and field = ident
 
 and x =
