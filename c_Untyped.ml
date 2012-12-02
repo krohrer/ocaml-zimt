@@ -13,18 +13,9 @@ struct
 
   let precedence = function
     | TVoid
-    | TChar _
-    | TShort _
-    | TInt _
-    | TLong _
-    | TLongLong _
-    | TFloat
-    | TDouble
-    | TLongDouble
     | TBool
-    | TStructRef _
-    | TUnionRef _
-    | TEnumRef _
+    | TInt _
+    | TReal _
     | TRef _		-> 999999
     (* Pointer types have second highest precedence*)
     | TPointer _	-> 2
@@ -39,6 +30,9 @@ struct
 
   open Printf
 
+  (* for lack of a better name we call it a fold *)
+
+
   let add_format b fmt = Printf.bprintf b fmt
   and add_string b s = Buffer.add_string b s
 
@@ -46,19 +40,19 @@ struct
     (* List.iter (add_type_qualifier b) quals; *)
     begin match spec with
     | TVoid			-> add_string b "void"
-    | TChar ss 			-> add_int b ss "char"
-    | TShort ss			-> add_int b ss "short"
-    | TInt ss			-> add_int b ss "int"
-    | TLong ss			-> add_int b ss "long"
-    | TLongLong ss		-> add_int b ss "long long"
-    | TFloat			-> add_string b "float"
-    | TDouble			-> add_string b "double"
-    | TLongDouble		-> add_string b "long double"
-    | TBool			-> add_string b "bool"
-    | TStructRef n		-> add_format b "struct %s" n
-    | TUnionRef n		-> add_format b "union %s" n
-    | TEnumRef n		-> add_format b "enum %s" n
-    | TRef n			-> add_string b n
+    (* | TChar ss 			-> add_int b ss "char" *)
+    (* | TShort ss			-> add_int b ss "short" *)
+    (* | TInt ss			-> add_int b ss "int" *)
+    (* | TLong ss			-> add_int b ss "long" *)
+    (* | TLongLong ss		-> add_int b ss "long long" *)
+    (* | TFloat			-> add_string b "float" *)
+    (* | TDouble			-> add_string b "double" *)
+    (* | TLongDouble		-> add_string b "long double" *)
+    (* | TBool			-> add_string b "bool" *)
+    (* | TStructRef n		-> add_format b "struct %s" n *)
+    (* | TUnionRef n		-> add_format b "union %s" n *)
+    (* | TEnumRef n		-> add_format b "enum %s" n *)
+    (* | TRef n			-> add_string b n *)
     | TPointer t		-> add_pointer b t name
     | TFunc (t,ats,va)		-> add_function b t ats va name
     | TArray (t,sizes)		-> add_array b t sizes name

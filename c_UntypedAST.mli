@@ -1,25 +1,19 @@
 type t = type_qual list * type_spec
 and type_spec = 
   | TVoid
-  | TChar of sign_spec
-  | TShort of sign_spec
-  | TInt of sign_spec
-  | TLong of sign_spec
-  | TLongLong of sign_spec
-  | TFloat
-  | TDouble
-  | TLongDouble
   | TBool
-  | TStructRef of ident
-  | TUnionRef of ident
-  | TEnumRef of ident
-  | TRef of ident
+  | TInt of sign_spec * int_t
+  | TReal of real_t
+  | TRef of ref_t * ident
   | TPointer of t
   | TFunc of t * t list * varargs
   | TArray of t * array_sizes
 and varargs = bool
 and type_qual = [`const | `restrict | `volatile]
 and ident = string
+and int_t = [`char | `short | `int | `long | `long | `long]
+and real_t = [`float | `double]
+and ref_t = [`struct' | `union | `enum | `named]
 and sign_spec = [`unsigned | `signed | `default]
 and field_decl = 
   | FField of t * ident

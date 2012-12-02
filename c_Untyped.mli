@@ -8,6 +8,11 @@ sig
   type q = C_UntypedAST.type_qual
   type s = C_UntypedAST.type_spec
 
+  (* val fold_right : *)
+  (*   ~named:(q list * string -> 'a)  *)
+  (*   ~tpointer: *)
+  (*   t -> 'a -> 'a *)
+
   val precedence : s -> rank
   val associativity : rank -> associativity
 end
