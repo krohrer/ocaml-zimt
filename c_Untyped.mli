@@ -14,14 +14,14 @@ include module type of C_UntypedAST
 module Type :
   sig
     val fold_right :
-      ?f'void	:(type_qual list		-> 'a -> 'a) ->
-      ?f'bool	:(type_qual list		-> 'a -> 'a) ->
-      ?f'int	:(type_qual list * int_t	-> 'a -> 'a) ->
-      ?f'real	:(type_qual list * real_t	-> 'a -> 'a) ->
-      ?f'ref	:(type_qual list * ref_t	-> 'a -> 'a) ->
-      ?f'ptr	:(type_qual list * t		-> 'a -> 'a) ->
-      ?f'fun	:(type_qual list * fun_t	-> 'a -> 'a) ->
-      ?f'arr	:(type_qual list * arr_t	-> 'a -> 'a) ->
+      f'void	:(type_qual list		-> 'a -> 'a) ->
+      f'bool	:(type_qual list		-> 'a -> 'a) ->
+      f'int	:(type_qual list * int_t	-> 'a -> 'a) ->
+      f'real	:(type_qual list * real_t	-> 'a -> 'a) ->
+      f'ref	:(type_qual list * ref_t	-> 'a -> 'a) ->
+      f'ptr	:(type_qual list * t		-> 'a -> 'a) ->
+      f'fun	:(type_qual list * fun_t	-> 'a -> 'a) ->
+      f'arr	:(type_qual list * arr_t	-> 'a -> 'a) ->
       t ->  'a -> 'a
   end
 

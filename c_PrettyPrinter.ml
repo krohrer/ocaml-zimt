@@ -4,8 +4,55 @@ module F = Format
 
 type formatter = F.formatter
 
-let type_to_string t =
-  "const struct XYZ*"
+(* Printer combinators *)
+let (>>>) f g = fun fmt -> f fmt; g fmt
+
+let pprint_space fmt = Format.pp_print_space fmt ()
+let pprint_string s fmt = Format.pp_print_string fmt s
+let pprint_prefix s fmt =
+  pprint_space fmt;
+  pprint_string s fmt
+let pprint_list ~ppopen ~ppelem ~ppsep ~ppclose list fmt =
+  let rec fold = function
+    | []	-> ()
+    | [x]	-> ppelem x fmt
+    | x::rest	-> ppelem x fmt; ppsep fmt; fold rest
+  in
+  ppopen fmt;
+  fold list;
+  ppclose fmt
+    
+(* etc... *)
+
+let rec pprint_declaration (sc,t,name) =
+  let pprint_qualifiers qs =
+    failwith "TODO"
+  in
+  let pprint_qualified name qs =
+    pprint_qualifiers qs >>> pprint_string name
+  in
+  let pprint_decl t name =
+    let pprint_void		= failwith "TODO"
+    and	pprint_bool		= failwith "TODO"
+    and	pprint_int		= failwith "TODO"
+    and	pprint_real		= failwith "TODO"
+    and	pprint_ref		= failwith "TODO"
+    and	pprint_ptr		= failwith "TODO"
+    and	pprint_func		= failwith "TODO"
+    and	pprint_arr		= failwith "TODO" in
+    Type.fold_right
+      ~f'void:pprint_void
+      ~f'bool:pprint_bool
+      ~f'int:pprint_int
+      ~f'real:pprint_real
+      ~f'ref:pprint_ref
+      ~f'ptr:pprint_ptr
+      ~f'func:pprint_func
+      ~f'arr:pprint_arr
+      t
+  in
+  ()
+  (* pprint_prefix (storage_class_to_string sc) >>> pprint_decl t name *)
 
 let format_atom s ff =
   F.pp_print_string ff s

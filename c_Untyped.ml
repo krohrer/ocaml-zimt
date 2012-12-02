@@ -8,14 +8,14 @@ module Type =
     let f'id _ a = a
 
     let fold_right
-      ?(f'void	= f'id)
-      ?(f'bool	= f'id)
-      ?(f'int	= f'id)
-      ?(f'real	= f'id)
-      ?(f'ref	= f'id)
-      ?(f'ptr	= f'id)
-      ?(f'fun	= f'id)
-      ?(f'arr	= f'id) =
+      ~(f'void	= f'id)
+      ~(f'bool	= f'id)
+      ~(f'int	= f'id)
+      ~(f'real	= f'id)
+      ~(f'ref	= f'id)
+      ~(f'ptr	= f'id)
+      ~(f'func	= f'id)
+      ~(f'arr	= f'id) =
       fun (quals, spec) ->
 	match spec with
 	| TVoid		-> f'void (quals  )
@@ -24,7 +24,7 @@ module Type =
 	| TReal s	-> f'real (quals,s)
 	| TRef s	-> f'ref  (quals,s)
 	| TPtr s	-> f'ptr  (quals,s)
-	| TFun s	-> f'fun  (quals,s)
+	| TFunc s	-> f'func (quals,s)
 	| TArr s	-> f'arr  (quals,s)
 
   end

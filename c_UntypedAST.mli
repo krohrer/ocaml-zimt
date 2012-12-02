@@ -6,7 +6,7 @@ and type_spec =
   | TReal of real_t
   | TRef of ref_t
   | TPtr of t
-  | TFun of fun_t
+  | TFunc of fun_t
   | TArr of arr_t
 and type_qual = [`const | `restrict | `volatile]
 and ident = string
@@ -30,7 +30,7 @@ and field_decl =
   | FBitField of t * ident * int
   | FBitPadding of type_spec * int
 and enumerator = ident * x option
-and declaration = storage_class * t
+and declaration = storage_class * t * ident
 and storage_class = [`extern | `static | `auto | `register]
 and field = ident
 
