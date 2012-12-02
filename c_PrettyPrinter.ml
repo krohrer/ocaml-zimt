@@ -1,4 +1,3 @@
-open C_UntypedAST
 open C_Untyped
 open Printf
 module F = Format

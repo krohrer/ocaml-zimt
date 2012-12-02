@@ -1,98 +1,44 @@
 type rank = int
 type associativity = [`L2R|`R2L]
 
+include C_UntypedAST
+
 module Type =
-struct
-  type t = C_UntypedAST.t
-  type x = C_UntypedAST.x
-  type q = C_UntypedAST.type_qual
-  type s = C_UntypedAST.type_spec
+  struct
+    let f'id _ a = a
 
-  module B = Buffer
-  open C_UntypedAST
+    let fold_right
+      ?(f'void	= f'id)
+      ?(f'bool	= f'id)
+      ?(f'int	= f'id)
+      ?(f'real	= f'id)
+      ?(f'ref	= f'id)
+      ?(f'ptr	= f'id)
+      ?(f'fun	= f'id)
+      ?(f'arr	= f'id) =
+      fun (quals, spec) ->
+	match spec with
+	| TVoid		-> f'void (quals  )
+	| TBool		-> f'bool (quals  )
+	| TInt s	-> f'int  (quals,s)
+	| TReal s	-> f'real (quals,s)
+	| TRef s	-> f'ref  (quals,s)
+	| TPtr s	-> f'ptr  (quals,s)
+	| TFun s	-> f'fun  (quals,s)
+	| TArr s	-> f'arr  (quals,s)
 
-  let precedence = function
-    | TVoid
-    | TBool
-    | TInt _
-    | TReal _
-    | TRef _		-> 999999
-    (* Pointer types have second highest precedence*)
-    | TPointer _	-> 2
-    (* Functions and array types have highest precedence *)
-    | TFunc _		-> 1
-    | TArray _		-> 1
-
-  let associativity = function
-    | r when r = 1	-> `L2R (* Function and array types bind left to right *)
-    | r when r = 2	-> `R2L (* Pointers bind from right to left *)
-    | r			-> `L2R (* The rest does not actually matter *)
-
-  open Printf
-
-  (* for lack of a better name we call it a fold *)
-
-
-  let add_format b fmt = Printf.bprintf b fmt
-  and add_string b s = Buffer.add_string b s
-
-  let rec add_decl b (quals,spec) name =
-    (* List.iter (add_type_qualifier b) quals; *)
-    begin match spec with
-    | TVoid			-> add_string b "void"
-    (* | TChar ss 			-> add_int b ss "char" *)
-    (* | TShort ss			-> add_int b ss "short" *)
-    (* | TInt ss			-> add_int b ss "int" *)
-    (* | TLong ss			-> add_int b ss "long" *)
-    (* | TLongLong ss		-> add_int b ss "long long" *)
-    (* | TFloat			-> add_string b "float" *)
-    (* | TDouble			-> add_string b "double" *)
-    (* | TLongDouble		-> add_string b "long double" *)
-    (* | TBool			-> add_string b "bool" *)
-    (* | TStructRef n		-> add_format b "struct %s" n *)
-    (* | TUnionRef n		-> add_format b "union %s" n *)
-    (* | TEnumRef n		-> add_format b "enum %s" n *)
-    (* | TRef n			-> add_string b n *)
-    | TPointer t		-> add_pointer b t name
-    | TFunc (t,ats,va)		-> add_function b t ats va name
-    | TArray (t,sizes)		-> add_array b t sizes name
-    end
-
-  and add_type_qualifier b = function
-    | `const	-> add_string b "const " 
-    | `restrict	-> add_string b "restrict "
-    | `volatile	-> add_string b "volatile "
-
-  and add_sign_spec b = function
-    | `unsigned	-> add_string b "unsigned "
-    | `signed	-> add_string b "signed "
-    | `default	-> ()
-
-  and add_int b ss name =
-    add_sign_spec b ss;
-    add_string b name
-
-  and add_pointer b t name =
-    ()
-
-  and add_function b t ats va name =
-    ()
-
-  and add_array b t sizes name =
-    ()
-
-end
+  end
 
 module Expr =
   struct
     type t = C_UntypedAST.x
 
     open C_UntypedAST
-       
+    
     (* http://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B#Operator_precedence *)
 
     (* Highest precedence is rank 0 for atomic expressions. Higher
-    ranks mean lower precedence. *)
+       ranks mean lower precedence. *)
 
     let associativity = function
       | x when x < 3	-> `L2R
@@ -113,7 +59,7 @@ module Expr =
       | XOp2 (o,_,_)			-> op2_precedence o
       | XIIf (_,_,_)			-> 15
       (* We don't know what the quoted string contains, so we simply
-      give it a very low precedence *)
+	 give it a very low precedence *)
       | XQuote s			-> 999999
     and call_precedence			=  2
     and lit_precedence = function
@@ -161,59 +107,59 @@ module Expr =
       | Op2Assign			-> 15
       | Op2Comma			-> comma_precedence
     and comma_precedence		=  17
-end
+  end
 
 module Stmt =
   struct
     type t = C_UntypedAST.st
-end
+  end
 
-module Ops =
-struct
-  include C_UntypedAST
+module Embedded =
+  struct
+    include C_UntypedAST
 
-  let var n		= XIdent n
+    let var n		= XIdent n
 
-  let call n args	= XCall (XIdent n, args)
-  let apply x args	= XCall (x, args)
+    let call n args	= XCall (XIdent n, args)
+    let apply x args	= XCall (x, args)
 
-  let ( ~- ) x 		= XOp1 (Op1Arith `Neg, x)
-  let inc x		= XOp1 (Op1Arith `PreInc, x)
-  let dec x		= XOp1 (Op1Arith `PreDec, x)
-  let postinc x		= XOp1 (Op1Arith `PostInc, x)
-  let postdec x		= XOp1 (Op1Arith `PostDec, x)
-  let not x		= XOp1 (Op1Logic `Not, x)
-  let lnot x		= XOp1 (Op1Bit `Not, x)
-  let cast t x		= XOp1 (Op1Cast t, x)
-  let ( ^! ) x f	= XOp1 (Op1StructDeref f, x)
-  let ( ^ ) x f		= XOp1 (Op1StructRef f, x)
-  let ( ! ) x		= XOp1 (Op1Deref, x)
-  let ref x		= XOp1 (Op1Ref, x)
+    let ( ~- ) x 	= XOp1 (Op1Arith `Neg, x)
+    let inc x		= XOp1 (Op1Arith `PreInc, x)
+    let dec x		= XOp1 (Op1Arith `PreDec, x)
+    let postinc x	= XOp1 (Op1Arith `PostInc, x)
+    let postdec x	= XOp1 (Op1Arith `PostDec, x)
+    let not x		= XOp1 (Op1Logic `Not, x)
+    let lnot x		= XOp1 (Op1Bit `Not, x)
+    let cast t x	= XOp1 (Op1Cast t, x)
+    let ( ^! ) x f	= XOp1 (Op1StructDeref f, x)
+    let ( ^ ) x f	= XOp1 (Op1StructRef f, x)
+    let ( ! ) x		= XOp1 (Op1Deref, x)
+    let ref x		= XOp1 (Op1Ref, x)
 
-  let ( := ) x y	= XOp2 (Op2Assign, x, y)
-  let ( +! ) x y	= XOp2 (Op2Subscript, x, y)
+    let ( := ) x y	= XOp2 (Op2Assign, x, y)
+    let ( +! ) x y	= XOp2 (Op2Subscript, x, y)
 
-  let ( + ) x y		= XOp2 (Op2Arith `Add, x, y)
-  let ( - ) x y		= XOp2 (Op2Arith `Sub, x, y)
-  let ( * ) x y		= XOp2 (Op2Arith `Mul, x, y)
-  let ( / ) x y		= XOp2 (Op2Arith `Div, x, y)
-  let ( mod ) x y	= XOp2 (Op2Arith `Mod, x, y)
+    let ( + ) x y	= XOp2 (Op2Arith `Add, x, y)
+    let ( - ) x y	= XOp2 (Op2Arith `Sub, x, y)
+    let ( * ) x y	= XOp2 (Op2Arith `Mul, x, y)
+    let ( / ) x y	= XOp2 (Op2Arith `Div, x, y)
+    let ( mod ) x y	= XOp2 (Op2Arith `Mod, x, y)
 
-  let (	= ) x y 	= XOp2 (Op2Comp `Eq, x, y)
-  let ( == ) x y 	= XOp2 (Op2Comp `Eq, x, y)
-  let ( <> ) x y	= XOp2 (Op2Comp `NE, x, y)
-  let ( != ) x y	= XOp2 (Op2Comp `NE, x, y)
-  let ( > ) x y		= XOp2 (Op2Comp `Gt, x, y)
-  let ( < ) x y		= XOp2 (Op2Comp `Lt, x, y)
-  let ( >= ) x y 	= XOp2 (Op2Comp `GE, x, y)
-  let ( <= ) x y 	= XOp2 (Op2Comp `LE, x, y)
+    let ( = ) x y 	= XOp2 (Op2Comp `Eq, x, y)
+    let ( == ) x y 	= XOp2 (Op2Comp `Eq, x, y)
+    let ( <> ) x y	= XOp2 (Op2Comp `NE, x, y)
+    let ( != ) x y	= XOp2 (Op2Comp `NE, x, y)
+    let ( > ) x y	= XOp2 (Op2Comp `Gt, x, y)
+    let ( < ) x y	= XOp2 (Op2Comp `Lt, x, y)
+    let ( >= ) x y 	= XOp2 (Op2Comp `GE, x, y)
+    let ( <= ) x y 	= XOp2 (Op2Comp `LE, x, y)
 
-  let ( && ) x y	= XOp2 (Op2Logic `And, x, y)
-  let ( || ) x y	= XOp2 (Op2Logic `Or, x, y)
+    let ( && ) x y	= XOp2 (Op2Logic `And, x, y)
+    let ( || ) x y	= XOp2 (Op2Logic `Or, x, y)
 
-  let ( land ) x y	= XOp2 (Op2Bit `And, x, y)
-  let ( lor ) x y	= XOp2 (Op2Bit `Or, x, y)
-  let ( lxor ) x y	= XOp2 (Op2Bit `Xor, x, y)
-  let ( lsl ) x y	= XOp2 (Op2Bit `ShiftL, x, y)
-  let ( lsr ) x y	= XOp2 (Op2Bit `ShiftR, x, y)
-end
+    let ( land ) x y	= XOp2 (Op2Bit `And, x, y)
+    let ( lor ) x y	= XOp2 (Op2Bit `Or, x, y)
+    let ( lxor ) x y	= XOp2 (Op2Bit `Xor, x, y)
+    let ( lsl ) x y	= XOp2 (Op2Bit `ShiftL, x, y)
+    let ( lsr ) x y	= XOp2 (Op2Bit `ShiftR, x, y)
+  end

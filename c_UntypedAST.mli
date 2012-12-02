@@ -2,19 +2,29 @@ type t = type_qual list * type_spec
 and type_spec = 
   | TVoid
   | TBool
-  | TInt of sign_spec * int_t
+  | TInt of int_t
   | TReal of real_t
-  | TRef of ref_t * ident
-  | TPointer of t
-  | TFunc of t * t list * varargs
-  | TArray of t * array_sizes
-and varargs = bool
+  | TRef of ref_t
+  | TPtr of t
+  | TFun of fun_t
+  | TArr of arr_t
 and type_qual = [`const | `restrict | `volatile]
 and ident = string
-and int_t = [`char | `short | `int | `long | `long | `long]
-and real_t = [`float | `double]
-and ref_t = [`struct' | `union | `enum | `named]
+
+and int_t = sign_spec * [`char | `short | `int | `long | `long | `long]
 and sign_spec = [`unsigned | `signed | `default]
+
+and real_t = [`float | `double]
+
+and ref_t = [`struct' | `union | `enum | `named] * ident
+
+and fun_t = t * arg list * arity
+and arg = t * ident
+and arity = [`variadic | `fixed]
+
+and arr_t = t * array_sizes
+and array_sizes = int array
+
 and field_decl = 
   | FField of t * ident
   | FBitField of t * ident * int
@@ -22,7 +32,6 @@ and field_decl =
 and enumerator = ident * x option
 and declaration = storage_class * t
 and storage_class = [`extern | `static | `auto | `register]
-and array_sizes = int array
 and field = ident
 
 and x =
