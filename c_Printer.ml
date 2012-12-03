@@ -1,8 +1,6 @@
 open C_Untyped
-open Printf
-module F = Format
 
-type formatter = F.formatter
+type pp = Format.formatter -> unit
 
 (* Pretty printers form a monoid *)
 let pp_empty ff = ()
@@ -12,12 +10,15 @@ let (>>>) f g = fun ff -> f ff; g ff
 (* (f >>> g) >>> h === f >>> (g >>> h) *)
 
 let pp_string s ff = Format.pp_print_string ff s
-let pp_format s ff = Format.fprintf ff s
+let pp_int ff i = Format.pp_print_int ff i
+let pp_format fmt = Format.ksprintf (fun s ff -> Format.pp_print_string ff s) fmt
 let pp_space ff = Format.pp_print_space ff ()
 
-let pp_prefix s ff =
-  pp_space ff;
-  pp_string s ff
+let pp_to_string f x ff = Format.pp_print_string ff (f x)
+let pp_nbsp ff = Format.pp_print_string ff " "
+
+let pp_prefix s = pp_string s >>> pp_space
+let pp_suffix s = pp_space >>> pp_string s
 
 let pp_list ~ppelem ~ppsep list ff =
   let rec fold = function
@@ -27,49 +28,54 @@ let pp_list ~ppelem ~ppsep list ff =
   in
   fold list
 
-let pp_seq pplist ff =
-  let rec iter = function
-    | []	-> ()
-    | pp::rest	-> pp ff; iter rest
-  in
-  iter pplist
+let pp_seq = List.fold_left (>>>) pp_empty
   
-let pp_bracket sopen sclose pp = pp_string sopen >>> pp >>> pp_string sclose
-let pp_parenthesize = pp_bracket "(" ")"
-let pp_bracket_curly = pp_bracket "{" "}"
-let pp_bracket_square = pp_bracket "[" "]"
-    
-(* etc... *)
+let pp_bracket sopen pp sclose = pp_string sopen >>> pp >>> pp_string sclose
+let pp_parenthesize pp = pp_bracket "(" pp ")"
+let pp_bracket_curly pp = pp_bracket "{" pp "}"
+let pp_bracket_square pp = pp_bracket "[" pp "]"
 
-let rec pp_declaration (sc,t,name) =
-  let pp_qualifiers qs =
-    failwith "TODO"
-  in
-  let pp_qualified name qs =
-    pp_qualifiers qs >>> pp_string name
-  in
-  let pp_decl t name =
-    let pp_void		= failwith "TODO"
-    and	pp_bool		= failwith "TODO"
-    and	pp_int		= failwith "TODO"
-    and	pp_real		= failwith "TODO"
-    and	pp_ref		= failwith "TODO"
-    and	pp_ptr		= failwith "TODO"
-    and	pp_func		= failwith "TODO"
-    and	pp_arr		= failwith "TODO" in
-    Type.fold_right
-      ~f'void:pp_void
-      ~f'bool:pp_bool
-      ~f'int:pp_int
-      ~f'real:pp_real
-      ~f'ref:pp_ref
-      ~f'ptr:pp_ptr
-      ~f'func:pp_func
-      ~f'arr:pp_arr
-      t
-  in
-  ()
-  (* pp_prefix (storage_class_to_string sc) >>> pp_decl t name *)
+let pp_comma = pp_string "," >>> pp_space
+    
+(* Types *)
+
+let pp_sign_spec = function
+  | `unsigned	-> pp_prefix "unsigned"
+  | `signed	-> pp_prefix "signed"
+  | `default	-> pp_empty
+
+let int_type_to_string = function
+  | `char	-> "char"
+  | `short	-> "short"
+  | `int	-> "int"
+  | `long	-> "long"
+  | `longlong	-> "long long"
+
+let real_type_to_string = function
+  | `float	-> "float" 
+  | `double 	-> "double"
+  | `longdouble	-> "long double"
+
+let pp_prim = function
+  | TVoid		-> pp_string "void"
+  | TBool		-> pp_string "bool"
+  | TInt (ss,it)	-> pp_sign_spec ss >>> pp_to_string int_type_to_string it
+  | TReal rt		-> pp_to_string real_type_to_string rt
+
+let type_qual_to_string = function
+  | `const	-> "const"
+  | `restrict	-> "restrict"
+  | `volatile	-> "volatile"
+
+let pp_type_quals qs =
+  pp_list
+    ~ppelem:(pp_to_string type_qual_to_string)
+    ~ppsep:pp_nbsp
+    qs
+
+let pp_type t =
+  pp_empty
+
 
 (*
 let format_atom s ff =
