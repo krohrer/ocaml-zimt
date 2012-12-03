@@ -5,7 +5,7 @@ all: c_Printer.cmo c_Untyped.cmo
 
 c_Printer.cmo: c_Printer.ml c_Printer.cmi c_UntypedAST.cmi c_Untyped.cmi
 	ocamlc -c c_Printer.ml
-c_Printer.cmi: c_Printer.mli c_UntypedAST.cmi
+c_Printer.cmi: c_Printer.mli c_UntypedAST.cmi c_Untyped.cmi
 	ocamlc -c c_Printer.mli
 
 c_Untyped.cmo: c_Untyped.ml c_Untyped.cmi
