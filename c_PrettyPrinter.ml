@@ -4,56 +4,74 @@ module F = Format
 
 type formatter = F.formatter
 
-(* Printer combinators *)
-let (>>>) f g = fun fmt -> f fmt; g fmt
+(* Pretty printers form a monoid *)
+let pp_empty ff = ()
+let (>>>) f g = fun ff -> f ff; g ff
 
-let pprint_space fmt = Format.pp_print_space fmt ()
-let pprint_string s fmt = Format.pp_print_string fmt s
-let pprint_prefix s fmt =
-  pprint_space fmt;
-  pprint_string s fmt
-let pprint_list ~ppopen ~ppelem ~ppsep ~ppclose list fmt =
+(* f >>> pp_emtpy === pp_empty >>> f *)
+(* (f >>> g) >>> h === f >>> (g >>> h) *)
+
+let pp_string s ff = Format.pp_print_string ff s
+let pp_format s ff = Format.fprintf ff s
+let pp_space ff = Format.pp_print_space ff ()
+
+let pp_prefix s ff =
+  pp_space ff;
+  pp_string s ff
+
+let pp_list ~ppelem ~ppsep list ff =
   let rec fold = function
     | []	-> ()
-    | [x]	-> ppelem x fmt
-    | x::rest	-> ppelem x fmt; ppsep fmt; fold rest
+    | [x]	-> ppelem x ff
+    | x::rest	-> ppelem x ff; ppsep ff; fold rest
   in
-  ppopen fmt;
-  fold list;
-  ppclose fmt
+  fold list
+
+let pp_seq pplist ff =
+  let rec iter = function
+    | []	-> ()
+    | pp::rest	-> pp ff; iter rest
+  in
+  iter pplist
+  
+let pp_bracket sopen sclose pp = pp_string sopen >>> pp >>> pp_string sclose
+let pp_parenthesize = pp_bracket "(" ")"
+let pp_bracket_curly = pp_bracket "{" "}"
+let pp_bracket_square = pp_bracket "[" "]"
     
 (* etc... *)
 
-let rec pprint_declaration (sc,t,name) =
-  let pprint_qualifiers qs =
+let rec pp_declaration (sc,t,name) =
+  let pp_qualifiers qs =
     failwith "TODO"
   in
-  let pprint_qualified name qs =
-    pprint_qualifiers qs >>> pprint_string name
+  let pp_qualified name qs =
+    pp_qualifiers qs >>> pp_string name
   in
-  let pprint_decl t name =
-    let pprint_void		= failwith "TODO"
-    and	pprint_bool		= failwith "TODO"
-    and	pprint_int		= failwith "TODO"
-    and	pprint_real		= failwith "TODO"
-    and	pprint_ref		= failwith "TODO"
-    and	pprint_ptr		= failwith "TODO"
-    and	pprint_func		= failwith "TODO"
-    and	pprint_arr		= failwith "TODO" in
+  let pp_decl t name =
+    let pp_void		= failwith "TODO"
+    and	pp_bool		= failwith "TODO"
+    and	pp_int		= failwith "TODO"
+    and	pp_real		= failwith "TODO"
+    and	pp_ref		= failwith "TODO"
+    and	pp_ptr		= failwith "TODO"
+    and	pp_func		= failwith "TODO"
+    and	pp_arr		= failwith "TODO" in
     Type.fold_right
-      ~f'void:pprint_void
-      ~f'bool:pprint_bool
-      ~f'int:pprint_int
-      ~f'real:pprint_real
-      ~f'ref:pprint_ref
-      ~f'ptr:pprint_ptr
-      ~f'func:pprint_func
-      ~f'arr:pprint_arr
+      ~f'void:pp_void
+      ~f'bool:pp_bool
+      ~f'int:pp_int
+      ~f'real:pp_real
+      ~f'ref:pp_ref
+      ~f'ptr:pp_ptr
+      ~f'func:pp_func
+      ~f'arr:pp_arr
       t
   in
   ()
-  (* pprint_prefix (storage_class_to_string sc) >>> pprint_decl t name *)
+  (* pp_prefix (storage_class_to_string sc) >>> pp_decl t name *)
 
+(*
 let format_atom s ff =
   F.pp_print_string ff s
 
@@ -233,3 +251,4 @@ and format_initializer xs =
 
 and format_designated_initializer xs =
   failwith "TODO"
+*)
