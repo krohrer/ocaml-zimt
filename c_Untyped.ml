@@ -20,6 +20,21 @@ module Type =
 	| TArr ((t,_) as s)	-> f'arr  (quals,s) (foldr t a)
       in
       foldr
+
+    let unfold_right =
+      let rec unfold a (quals, spec as t) =
+	match spec with
+	| TPrim _		-> t :: a
+	| TRef _		-> t :: a
+	| TPtr tr		-> unfold (t :: a) tr
+	| TFunc (tr,_,_)	-> unfold (t :: a) tr
+	| TArr (tr,_)		-> unfold (t :: a) tr
+      in
+      unfold []
+      
+    let unfold_left t =
+      List.rev (unfold_right t)
+
   end
 
 module Expr =

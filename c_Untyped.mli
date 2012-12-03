@@ -20,6 +20,9 @@ module Type :
       f'func	:(type_qual list * func_t	-> 'a -> 'a) ->
       f'arr	:(type_qual list * arr_t	-> 'a -> 'a) ->
       t -> 'a -> 'a
+
+    val unfold_left : t -> t list
+    val unfold_right : t -> t list
   end
 
 
