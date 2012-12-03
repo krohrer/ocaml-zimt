@@ -13,10 +13,10 @@ and prim_t =
 and type_qual = [`const | `restrict | `volatile]
 and ident = string
 
-and int_t = sign_spec * [`char | `short | `int | `long | `long | `long]
+and int_t = sign_spec * [`char | `short | `int | `long | `longlong]
 and sign_spec = [`unsigned | `signed | `default]
 
-and real_t = [`float | `double]
+and real_t = [`float | `double | `longdouble ]
 
 and ref_t = [`struct' | `union | `enum | `named] * ident
 
