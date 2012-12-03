@@ -1,13 +1,15 @@
 type t = type_qual list * type_spec
 and type_spec = 
+  | TPrim of prim_t
+  | TRef of ref_t
+  | TPtr of t
+  | TFunc of func_t
+  | TArr of arr_t
+and prim_t =
   | TVoid
   | TBool
   | TInt of int_t
   | TReal of real_t
-  | TRef of ref_t
-  | TPtr of t
-  | TFunc of fun_t
-  | TArr of arr_t
 and type_qual = [`const | `restrict | `volatile]
 and ident = string
 
@@ -18,7 +20,7 @@ and real_t = [`float | `double]
 
 and ref_t = [`struct' | `union | `enum | `named] * ident
 
-and fun_t = t * arg list * arity
+and func_t = t * arg list * arity
 and arg = t * ident
 and arity = [`variadic | `fixed]
 

@@ -5,28 +5,21 @@ include C_UntypedAST
 
 module Type =
   struct
-    let f'id _ a = a
-
     let fold_right
-      ~(f'void	= f'id)
-      ~(f'bool	= f'id)
-      ~(f'int	= f'id)
-      ~(f'real	= f'id)
-      ~(f'ref	= f'id)
-      ~(f'ptr	= f'id)
-      ~(f'func	= f'id)
-      ~(f'arr	= f'id) =
-      fun (quals, spec) ->
+	~f'prim
+	~f'ref
+	~f'ptr
+	~f'func
+	~f'arr =
+      let rec foldr (quals, spec) a =
 	match spec with
-	| TVoid		-> f'void (quals  )
-	| TBool		-> f'bool (quals  )
-	| TInt s	-> f'int  (quals,s)
-	| TReal s	-> f'real (quals,s)
-	| TRef s	-> f'ref  (quals,s)
-	| TPtr s	-> f'ptr  (quals,s)
-	| TFunc s	-> f'func (quals,s)
-	| TArr s	-> f'arr  (quals,s)
-
+	| TPrim p		-> f'prim (quals,p) a
+	| TRef s		-> f'ref  (quals,s) a 
+	| TPtr t		-> f'ptr  (quals,t) (foldr t a)
+	| TFunc ((t,_,_) as s)	-> f'func (quals,s) (foldr t a)
+	| TArr ((t,_) as s)	-> f'arr  (quals,s) (foldr t a)
+      in
+      foldr
   end
 
 module Expr =
