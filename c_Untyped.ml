@@ -5,36 +5,6 @@ include C_UntypedAST
 
 module Type =
   struct
-    let fold_right
-	~f'prim
-	~f'ref
-	~f'ptr
-	~f'func
-	~f'arr =
-      let rec foldr (quals, spec) a =
-	match spec with
-	| TPrim p		-> f'prim (quals,p) a
-	| TRef s		-> f'ref  (quals,s) a 
-	| TPtr t		-> f'ptr  (quals,t) (foldr t a)
-	| TFunc ((t,_,_) as s)	-> f'func (quals,s) (foldr t a)
-	| TArr ((t,_) as s)	-> f'arr  (quals,s) (foldr t a)
-      in
-      foldr
-
-    let unfold_right =
-      let rec unfold a (quals, spec as t) =
-	match spec with
-	| TPrim _		-> t :: a
-	| TRef _		-> t :: a
-	| TPtr tr		-> unfold (t :: a) tr
-	| TFunc (tr,_,_)	-> unfold (t :: a) tr
-	| TArr (tr,_)		-> unfold (t :: a) tr
-      in
-      unfold []
-      
-    let unfold_left t =
-      List.rev (unfold_right t)
-
   end
 
 module Expr =

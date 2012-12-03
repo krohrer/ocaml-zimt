@@ -13,16 +13,6 @@ include module type of C_UntypedAST
 
 module Type :
   sig
-    val fold_right :
-      f'prim	:(type_qual list * prim_t	-> 'a -> 'a) ->
-      f'ref	:(type_qual list * ref_t	-> 'a -> 'a) ->
-      f'ptr	:(type_qual list * t		-> 'a -> 'a) ->
-      f'func	:(type_qual list * func_t	-> 'a -> 'a) ->
-      f'arr	:(type_qual list * arr_t	-> 'a -> 'a) ->
-      t -> 'a -> 'a
-
-    val unfold_left : t -> t list
-    val unfold_right : t -> t list
   end
 
 

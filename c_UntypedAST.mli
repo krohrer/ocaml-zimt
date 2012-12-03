@@ -1,8 +1,7 @@
-type t = type_qual list * type_spec
-and type_spec = 
-  | TPrim of prim_t
-  | TRef of ref_t
-  | TPtr of t
+type t =
+  | TPrim of type_qual list * prim_t
+  | TRef of type_qual list * ref_t
+  | TPtr of type_qual list * t
   | TFunc of func_t
   | TArr of arr_t
 and prim_t =
@@ -18,19 +17,19 @@ and sign_spec = [`unsigned | `signed | `default]
 
 and real_t = [`float | `double | `longdouble ]
 
-and ref_t = [`struct' | `union | `enum | `named] * ident
+and ref_t = [`struct' | `union | `enum | `typedef] * ident
 
 and func_t = t * arg list * arity
 and arg = t * ident
 and arity = [`variadic | `fixed]
 
 and arr_t = t * array_sizes
-and array_sizes = int array
+and array_sizes = int list
 
 and field_decl = 
   | FField of t * ident
   | FBitField of t * ident * int
-  | FBitPadding of type_spec * int
+  | FBitPadding of int_t * int
 and enumerator = ident * x option
 and declaration = storage_class * t * ident
 and storage_class = [`extern | `static | `auto | `register]

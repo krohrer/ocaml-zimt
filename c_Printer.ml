@@ -1,5 +1,7 @@
 open C_Untyped
 
+let todo = failwith "TODO"
+
 type pp = Format.formatter -> unit
 
 (* Pretty printers form a monoid *)
@@ -10,7 +12,7 @@ let (>>>) f g = fun ff -> f ff; g ff
 (* (f >>> g) >>> h === f >>> (g >>> h) *)
 
 let pp_string s ff = Format.pp_print_string ff s
-let pp_int ff i = Format.pp_print_int ff i
+let pp_int i ff = Format.pp_print_int ff i
 let pp_format fmt = Format.ksprintf (fun s ff -> Format.pp_print_string ff s) fmt
 let pp_space ff = Format.pp_print_space ff ()
 
@@ -20,11 +22,11 @@ let pp_nbsp ff = Format.pp_print_string ff " "
 let pp_prefix s = pp_string s >>> pp_space
 let pp_suffix s = pp_space >>> pp_string s
 
-let pp_list ~ppelem ~ppsep list ff =
+let pp_list ~elem ?(sep=pp_empty) list ff =
   let rec fold = function
     | []	-> ()
-    | [x]	-> ppelem x ff
-    | x::rest	-> ppelem x ff; ppsep ff; fold rest
+    | [x]	-> elem x ff
+    | x::rest	-> elem x ff; sep ff; fold rest
   in
   fold list
 
@@ -56,11 +58,11 @@ let real_type_to_string = function
   | `double 	-> "double"
   | `longdouble	-> "long double"
 
-let pp_prim = function
-  | TVoid		-> pp_string "void"
-  | TBool		-> pp_string "bool"
-  | TInt (ss,it)	-> pp_sign_spec ss >>> pp_to_string int_type_to_string it
-  | TReal rt		-> pp_to_string real_type_to_string rt
+let pp_prim_type = function
+  | TVoid	-> pp_string "void"
+  | TBool	-> pp_string "bool"
+  | TInt (s,i)	-> pp_sign_spec s >>> pp_to_string int_type_to_string i
+  | TReal rt	-> pp_to_string real_type_to_string rt
 
 let type_qual_to_string = function
   | `const	-> "const"
@@ -68,14 +70,56 @@ let type_qual_to_string = function
   | `volatile	-> "volatile"
 
 let pp_type_quals qs =
-  pp_list
-    ~ppelem:(pp_to_string type_qual_to_string)
-    ~ppsep:pp_nbsp
-    qs
+  pp_list ~elem:(fun q -> pp_prefix (type_qual_to_string q)) qs
 
-let pp_type t =
-  pp_empty
+let pp_ref_type = function
+  | `struct', name	-> pp_format "struct %s" name
+  | `union, name	-> pp_format "union %s" name
+  | `enum, name		-> pp_format "enum %s" name
+  | `typedef, name	-> pp_string name
 
+let pp_array_sizes sizes =
+  let pp_size i = pp_bracket_square (if i < 0 then pp_empty else pp_int i) in
+  pp_list ~elem:pp_size sizes
+
+let rec pp_type ?(partial=pp_empty) = function
+  | TPrim (qs,p)	-> pp_prim qs p partial
+  | TRef (qs,r)		-> pp_ref qs r partial
+  | TPtr (qs,t)		-> pp_ptr qs t partial
+  | TFunc ft		-> pp_func ft partial
+  | TArr at		-> pp_arr at partial
+
+and pp_prim qs p partial =
+  pp_type_quals qs >>> pp_nbsp >>> pp_prim_type p >>> pp_space >>> partial
+
+and pp_ref qs r partial =
+  pp_type_quals qs >>> pp_nbsp >>> pp_ref_type r >>> pp_space >>> partial
+
+and pp_ptr qs t partial =
+  let partial = pp_string "*" >>> pp_type_quals qs >>> partial in
+  match t with
+  (* Pointers to functions and arrays need to be parenthesized *)
+  | TFunc _
+  | TArr _	-> pp_type ~partial:(pp_parenthesize partial) t
+  | s		-> pp_type ~partial t
+
+and pp_func (t,args,arity) partial =
+  pp_type ~partial:(partial >>> pp_arg_list args arity) t
+
+and pp_arg (t,name) =
+  pp_type t ~partial:(pp_string name)
+
+and pp_arg_list args arity =
+  let pp_args = pp_list ~elem:pp_arg ~sep:pp_comma args in
+  match arity with
+  | `fixed	-> pp_parenthesize pp_args
+  | `variadic	-> pp_parenthesize (pp_args >>> pp_comma >>> pp_string "...")
+
+and pp_arr (t,sizes) partial =
+  pp_type ~partial:(partial >>> pp_list ~elem:pp_array_size sizes) t
+
+and pp_array_size i =
+  pp_bracket_square (if i < 0 then pp_empty else pp_int i)
 
 (*
 let format_atom s ff =
