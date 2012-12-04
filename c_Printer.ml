@@ -1,8 +1,11 @@
+open C_UntypedAST
 open C_Untyped
 
 let todo = failwith "TODO"
 
 type pp = Format.formatter -> unit
+
+let run_on_stdout pp = pp Format.std_formatter
 
 (* Pretty printers form a monoid *)
 let pp_empty ff = ()
@@ -13,14 +16,13 @@ let (>>>) f g = fun ff -> f ff; g ff
 
 let pp_string s ff = Format.pp_print_string ff s
 let pp_int i ff = Format.pp_print_int ff i
-let pp_format fmt = Format.ksprintf (fun s ff -> Format.pp_print_string ff s) fmt
 let pp_space ff = Format.pp_print_space ff ()
+
+let pp_format fmt =
+  Format.ksprintf (fun s ff -> Format.pp_print_string ff s) fmt
 
 let pp_to_string f x ff = Format.pp_print_string ff (f x)
 let pp_nbsp ff = Format.pp_print_string ff " "
-
-let pp_prefix s = pp_string s >>> pp_space
-let pp_suffix s = pp_space >>> pp_string s
 
 let pp_list ~elem ?(sep=pp_empty) list ff =
   let rec fold = function
@@ -31,7 +33,7 @@ let pp_list ~elem ?(sep=pp_empty) list ff =
   fold list
 
 let pp_seq = List.fold_left (>>>) pp_empty
-  
+
 let pp_bracket sopen pp sclose = pp_string sopen >>> pp >>> pp_string sclose
 let pp_parenthesize pp = pp_bracket "(" pp ")"
 let pp_bracket_curly pp = pp_bracket "{" pp "}"
@@ -39,11 +41,34 @@ let pp_bracket_square pp = pp_bracket "[" pp "]"
 
 let pp_comma = pp_string "," >>> pp_space
     
+let pp_box ?(indent=0) pp ff =
+  Format.pp_open_box ff indent;
+  pp ff;
+  Format.pp_close_box ff ()
+  
+let pp_hbox pp ff =
+  Format.pp_open_hbox ff ();
+  pp ff;
+  Format.pp_close_box ff ()
+
+let pp_vbox ?(indent=0) pp ff =
+  Format.pp_open_vbox ff indent;
+  pp ff;
+  Format.pp_close_box ff ()
+
+let pp_hvbox ?(indent=0) pp ff =
+  Format.pp_open_hvbox ff indent;
+  pp ff;
+  Format.pp_close_box ff ()
+
+let pp_cut ff = Format.pp_print_cut ff ()
+let pp_break nsp ind ff = Format.pp_print_break ff nsp ind
+
 (* Types *)
 
 let pp_sign_spec = function
-  | `unsigned	-> pp_prefix "unsigned"
-  | `signed	-> pp_prefix "signed"
+  | `unsigned	-> pp_string "unsigned" >>> pp_nbsp
+  | `signed	-> pp_string "signed" >>> pp_nbsp
   | `default	-> pp_empty
 
 let int_type_to_string = function
@@ -70,7 +95,8 @@ let type_qual_to_string = function
   | `volatile	-> "volatile"
 
 let pp_type_quals qs =
-  pp_list ~elem:(fun q -> pp_prefix (type_qual_to_string q)) qs
+  let pp_qual q = pp_to_string type_qual_to_string q >>> pp_nbsp in
+  pp_list ~elem:pp_qual qs
 
 let pp_ref_type = function
   | `struct', name	-> pp_format "struct %s" name
@@ -90,10 +116,10 @@ let rec pp_type ?(partial=pp_empty) = function
   | TArr at		-> pp_arr at partial
 
 and pp_prim qs p partial =
-  pp_type_quals qs >>> pp_nbsp >>> pp_prim_type p >>> pp_space >>> partial
+  pp_type_quals qs >>> pp_prim_type p >>> pp_space >>> partial
 
 and pp_ref qs r partial =
-  pp_type_quals qs >>> pp_nbsp >>> pp_ref_type r >>> pp_space >>> partial
+  pp_type_quals qs >>> pp_ref_type r >>> pp_space >>> partial
 
 and pp_ptr qs t partial =
   let partial = pp_string "*" >>> pp_type_quals qs >>> partial in
@@ -121,184 +147,133 @@ and pp_arr (t,sizes) partial =
 and pp_array_size i =
   pp_bracket_square (if i < 0 then pp_empty else pp_int i)
 
-(*
-let format_atom s ff =
-  F.pp_print_string ff s
+(* Expressions *)
 
-let format_atomf ff =
-  ksprintf (format_atom) ff
-
-(* TODO : Add box *)
-let format_parenthesize n ff =
-  F.pp_print_string ff "(";
-  n ff;
-  F.pp_print_string ff ")"
-
-(* TODO : Add box *)
-let format_curly_bracket n ff =
-  F.pp_print_string ff "{";
-  n ff;
-  F.pp_print_string ff "}"
-
-(* TODO : Add box *)
-let format_square_bracket n ff =
-  F.pp_print_string ff "[";
-  n ff;
-  F.pp_print_string ff "]"
-
-let format_seq ns ff =
-  List.iter (fun n -> n ff) ns
-
-let format_list sep ns ff =
-  let rec iter = function
-    | []	-> ()
-    | n::[]	-> n ff
-    | n::rest	-> 
-	n ff;
-	F.pp_print_string ff sep;
-	F.pp_print_space ff ();
-	iter rest
-  in
-  iter ns
-
-let rec format_expr x =
+let rec pp_expr x =
   match x with
-  | XQuote s			-> format_atom s
-  | XLit l			-> format_literal l
-  | XIdent n			-> format_atom n
-  | XCall (f, args)		-> format_call f args
-  | XOp1 (op,a)			-> format_op1 (Expr.precedence x) op a
-  | XOp2 (op,a,b)		-> format_op2 (Expr.precedence x) op a b
-  | XStmtExpr stmts		-> format_stmt_expr stmts
-  | XIIf (p,t,f)		-> format_inline_if (Expr.precedence x) p t f
-  | XInit xs			-> format_initializer xs
-  | XDInit xs			-> format_designated_initializer xs
+  | XQuote s			-> pp_string s
+  | XLit l			-> pp_literal l
+  | XIdent n			-> pp_string n
+  | XCall (f,args)		-> pp_call f args
+  | XOp1 (op,a)			-> pp_op1 (Expr.precedence x) op a
+  | XOp2 (op,a,b)		-> pp_op2 (Expr.precedence x) op a b
+  | XStmtExpr stmts		-> pp_stmt_expr stmts
+  | XIIf (p,t,f)		-> pp_inline_if (Expr.precedence x) p t f
+  | XInit xs			-> pp_initializer xs
+  | XDInit xs			-> pp_designated_initializer xs
 
-and format_literal = function
-  | LInt i	-> format_atomf "%d" i
-  | LInt32 i	-> format_atomf "%ld" i
-  | LInt64 i	-> format_atomf "%LdLL" i
-  | LUInt u	-> format_atomf "%uU" u
-  | LUInt32 u	-> format_atomf "%luU" u
-  | LUInt64 u 	-> format_atomf "%LuULL" u
-  | LFloat32 f	-> format_atomf "%.9gF" f (* A bit more precision than actually present *)
-  | LFloat64 f	-> format_atomf "%.18g" f (* Same here *)
-  | LStr s	-> format_atomf "%S" s
+and pp_literal = function
+  | LInt i	-> pp_format "%d" i
+  | LInt32 i	-> pp_format "%ld" i
+  | LInt64 i	-> pp_format "%LdLL" i
+  | LUInt u	-> pp_format "%uU" u
+  | LUInt32 u	-> pp_format "%luU" u
+  | LUInt64 u 	-> pp_format "%LuULL" u
+  | LStr s	-> pp_format "%S" s
+  (* A bit more precision for floats than actually present, to ensure
+     that we have the same representation on the other end. *)
+  | LFloat32 f	-> pp_format "%.9gF" f
+  | LFloat64 f	-> pp_format "%.18g" f
 
-and format_comma_separated_element x =
-  let p_x = Expr.precedence x in
-  let x' = format_expr x in
-  if p_x < Expr.comma_precedence then
-    x'
+and pp_comma_separated_element x =
+  let rx = Expr.precedence x in
+  let pp_x = pp_expr x in
+  if rx < Expr.comma_precedence then
+    pp_x
   else
-    format_parenthesize x'
+    pp_parenthesize pp_x
 
-and format_arglist args =
-  let ns = List.map format_comma_separated_element args in
-  format_parenthesize (format_list "," ns)
+and pp_arglist args =
+  pp_parenthesize (pp_list ~elem:pp_comma_separated_element ~sep:pp_comma args)
 
-and format_subexpr placement p_parent x =
-  let p_x = Expr.precedence x in
-  let nx = format_expr x in
-  if p_x < p_parent then
-    nx
-  else if p_x > p_parent then
-    format_parenthesize nx
+and pp_subexpr placement rparent x =
+  let rx = Expr.precedence x in
+  let pp_x = pp_expr x in
+  if rx < rparent then
+    pp_x
+  else if rx > rparent then
+    pp_parenthesize pp_x
   else
-    let assoc = Expr.associativity p_x in
+    let assoc = Expr.associativity rx in
     match placement, assoc with
-    | `L, `R2L -> format_parenthesize nx
-    | `R, `L2R -> format_parenthesize nx
-    | _, _ -> nx
+    | `L, `R2L -> pp_parenthesize pp_x
+    | `R, `L2R -> pp_parenthesize pp_x
+    | _, _ -> pp_x
 
-and format_call f args =
-  format_seq [ format_subexpr `L Expr.call_precedence f;
-	       format_arglist args ]
+and pp_call f args =
+  pp_subexpr `L Expr.call_precedence f >>> pp_arglist args
 
-and format_prefix p ops x ff =
-  F.pp_print_string ff ops;
-  format_subexpr `R p x ff
+and pp_prefix r ops x =
+  pp_string ops >>> pp_subexpr `R r x
 
-and format_postfix p x ops ff =
-  format_subexpr `L p x ff;
-  F.pp_print_string ff ops
+and pp_postfix r x ops =
+  pp_subexpr `L r x >>> pp_string ops
 
-and format_infix p x ops y ff =
-  format_subexpr `L p x ff;
-  F.pp_print_string ff " ";
-  F.pp_print_string ff ops;
-  F.pp_print_space ff ();
-  format_subexpr `R p y ff
+and pp_infix r x ops y =
+  let pp_left	= pp_subexpr `L r x
+  and pp_op	= pp_nbsp >>> pp_string ops >>> pp_space
+  and pp_right	= pp_subexpr `R r y in
+  pp_left >>> pp_op >>> pp_right
 
-and format_op1 p op x =
+and pp_op1 r op x =
   match op with
-  | Op1Arith `Neg		-> format_prefix  p "-" x
-  | Op1Arith `PreInc		-> format_prefix  p "++" x
-  | Op1Arith `PreDec		-> format_prefix  p "--" x
-  | Op1Arith `PostInc		-> format_postfix p x "++"
-  | Op1Arith `PostDec		-> format_postfix p x "--"
-  | Op1Bit `Not			-> format_prefix  p "~" x
-  | Op1Logic `Not		-> format_prefix  p "!" x
-  | Op1Cast t			-> format_prefix  p ("("^type_to_string t^")") x
-  | Op1Deref			-> format_prefix  p "*" x
-  | Op1StructDeref f		-> format_postfix p x ("->"^f)
-  | Op1Ref			-> format_prefix  p "&" x
-  | Op1StructRef f		-> format_postfix p x ("."^f)
+  | Op1Arith `Neg      	-> pp_prefix  r "-"	x
+  | Op1Arith `PreInc	-> pp_prefix  r "++"	x
+  | Op1Arith `PreDec	-> pp_prefix  r "--"	x
+  | Op1Arith `PostInc	-> pp_postfix r		x "++"
+  | Op1Arith `PostDec	-> pp_postfix r		x "--"
+  | Op1Bit `Not		-> pp_prefix  r "~"	x
+  | Op1Logic `Not	-> pp_prefix  r "!"	x
+  | Op1Cast t		-> pp_parenthesize (pp_type t) >>> pp_subexpr `R r x
+  | Op1Deref		-> pp_prefix  r "*"	x
+  | Op1StructDeref f	-> pp_postfix r 	x ("->"^f)
+  | Op1Ref		-> pp_prefix  r "&" 	x
+  | Op1StructRef f	-> pp_postfix r 	x ("."^f)
 
-and format_op2 p op x y =
+and arith2_to_string = function
+  | `Add	-> "+"
+  | `Sub	-> "-"
+  | `Mul	-> "*"
+  | `Div	-> "/"
+  | `Mod	-> "%"
+
+and comp2_to_string = function
+  | `Eq		-> "=="
+  | `NE		-> "!="
+  | `Gt		-> ">"
+  | `Lt		-> "<"
+  | `GE		-> ">="
+  | `LE		-> "<="
+
+and logic2_to_string = function
+  | `And	-> "&&"
+  | `Or		-> "||"
+
+and bit2_to_string = function
+  | `And	-> "&"
+  | `Or		-> "|"
+  | `Xor	-> "^"
+  | `ShiftL	-> "<<"
+  | `ShiftR	-> ">>"
+
+and pp_op2 r op x y =
   match op with
-  | Op2Arith a ->
-      let s = match a with 
-      | `Add	-> "+"
-      | `Sub	-> "-"
-      | `Mul	-> "*"
-      | `Div	-> "/"
-      | `Mod	-> "%"
-      in
-      format_infix p x s y
-  | Op2Comp r ->
-      let s = match r with
-      | `Eq	-> "=="
-      | `NE	-> "!="
-      | `Gt	-> ">"
-      | `Lt	-> "<"
-      | `GE	-> ">="
-      | `LE	-> "<="
-      in
-      format_infix p x s y
-  | Op2Logic l ->
-      let s = match l with
-      | `And	-> "&&"
-      | `Or	-> "||"
-      in
-      format_infix p x s y
-  | Op2Bit b ->
-      let s = match b with
-      | `And	-> "&"
-      | `Or	-> "|"
-      | `Xor	-> "^"
-      | `ShiftL	-> "<<"
-      | `ShiftR	-> ">>"
-      in
-      format_infix p x s y
-  | Op2Assign ->
-      format_infix p x "=" y
-  | Op2Subscript ->
-      format_seq [ format_subexpr `L p x;
-		   format_square_bracket (format_expr x) ]
-  | Op2Comma ->
-      format_list "," [ format_subexpr `L p x;
-			format_subexpr `R p y ]
+  | Op2Arith o		-> pp_infix r x (arith2_to_string o) y
+  | Op2Comp o		-> pp_infix r x (comp2_to_string  o) y
+  | Op2Logic o		-> pp_infix r x (logic2_to_string o) y
+  | Op2Bit o		-> pp_infix r x (bit2_to_string   o) y
+  | Op2Assign		-> pp_infix r x "="                  y
+  | Op2Subscript	-> pp_subexpr `L r x >>> pp_bracket_square (pp_expr x)
+  | Op2Comma		-> pp_subexpr `L r x >>> pp_comma >>> pp_subexpr `R r y
 
-and format_stmt_expr stmts =
+and pp_stmt_expr stmts =
   failwith "TODO"
 
-and format_inline_if p pred bt bf =
+and pp_inline_if r pred bt bf =
   failwith "TODO"
 
-and format_initializer xs =
+and pp_initializer xs =
   failwith "TODO"
 
-and format_designated_initializer xs =
+and pp_designated_initializer xs =
   failwith "TODO"
-*)
