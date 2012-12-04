@@ -13,8 +13,8 @@ c_Untyped.cmo: c_Untyped.ml c_Untyped.cmi
 c_Untyped.cmi: c_Untyped.mli
 	ocamlc -c c_Untyped.mli
 
-c_UntypedAST.cmi: c_UntypedAST.mli
-	ocamlc -c c_UntypedAST.mli
+c_UntypedAST.cmi: c_UntypedAST.ml
+	ocamlc -c c_UntypedAST.ml
 
 cTyped.cmi: cTyped.mli
 	ocamlc -c cTyped.mli
