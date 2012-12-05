@@ -43,7 +43,7 @@ module Embedded :
     val ( ! )		: x -> x		(*	*X 	*)
     val ref		: x -> x		(*	&X 	*)
 
-    val ( := )		: x -> x -> x		(*	X=Y	*)
+    val ( := )		: x -> x -> x		(*	X=Y		*)
     val ( +! )		: x -> x -> x		(*	*(X+Y), X[Y]	*)
 
     val ( + )		: x -> x -> x

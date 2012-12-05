@@ -1,18 +1,19 @@
 open C_UntypedAST
 open C_Untyped
 
-let todo = failwith "TODO"
-
 type pp = Format.formatter -> unit
 
-let run_on_stdout pp = pp Format.std_formatter
+(* General -----------------------------------------------------------------*)
+
+let std_indent = 2
 
 (* Pretty printers form a monoid *)
 let pp_empty ff = ()
-let (>>>) f g = fun ff -> f ff; g ff
+let (+++) f g = fun ff -> f ff; g ff
+let ( *** ) f x = f x
 
-(* f >>> pp_emtpy === pp_empty >>> f *)
-(* (f >>> g) >>> h === f >>> (g >>> h) *)
+(* f +++ pp_emtpy === pp_empty +++ f *)
+(* (f +++ g) +++ h === f +++ (g +++ h) *)
 
 let pp_string s ff = Format.pp_print_string ff s
 let pp_int i ff = Format.pp_print_int ff i
@@ -32,16 +33,16 @@ let pp_list ~elem ?(sep=pp_empty) list ff =
   in
   fold list
 
-let pp_seq = List.fold_left (>>>) pp_empty
+let pp_seq = List.fold_left (+++) pp_empty
 
-let pp_bracket sopen pp sclose = pp_string sopen >>> pp >>> pp_string sclose
+let pp_bracket sopen pp sclose = pp_string sopen +++ pp +++ pp_string sclose
 let pp_parenthesize pp = pp_bracket "(" pp ")"
 let pp_bracket_curly pp = pp_bracket "{" pp "}"
 let pp_bracket_square pp = pp_bracket "[" pp "]"
 
-let pp_comma = pp_string "," >>> pp_space
-    
-let pp_box ?(indent=0) pp ff =
+let pp_comma = pp_string "," +++ pp_space
+
+let pp_box ~indent pp ff =
   Format.pp_open_box ff indent;
   pp ff;
   Format.pp_close_box ff ()
@@ -51,12 +52,12 @@ let pp_hbox pp ff =
   pp ff;
   Format.pp_close_box ff ()
 
-let pp_vbox ?(indent=0) pp ff =
+let pp_vbox ~indent pp ff =
   Format.pp_open_vbox ff indent;
   pp ff;
   Format.pp_close_box ff ()
 
-let pp_hvbox ?(indent=0) pp ff =
+let pp_hvbox ~indent pp ff =
   Format.pp_open_hvbox ff indent;
   pp ff;
   Format.pp_close_box ff ()
@@ -64,11 +65,11 @@ let pp_hvbox ?(indent=0) pp ff =
 let pp_cut ff = Format.pp_print_cut ff ()
 let pp_break nsp ind ff = Format.pp_print_break ff nsp ind
 
-(* Types *)
+(* Types -------------------------------------------------------------------*)
 
 let pp_sign_spec = function
-  | `unsigned	-> pp_string "unsigned" >>> pp_nbsp
-  | `signed	-> pp_string "signed" >>> pp_nbsp
+  | `unsigned	-> pp_string "unsigned" +++ pp_space
+  | `signed	-> pp_string "signed" +++ pp_space
   | `default	-> pp_empty
 
 let int_type_to_string = function
@@ -84,18 +85,21 @@ let real_type_to_string = function
   | `longdouble	-> "long double"
 
 let pp_prim_type = function
-  | TVoid	-> pp_string "void"
-  | TBool	-> pp_string "bool"
-  | TInt (s,i)	-> pp_sign_spec s >>> pp_to_string int_type_to_string i
-  | TReal rt	-> pp_to_string real_type_to_string rt
+  | PBool	-> pp_string "bool"
+  | PInt (s,i)	-> pp_sign_spec s +++ pp_to_string int_type_to_string i
+  | PReal rt	-> pp_to_string real_type_to_string rt
 
 let type_qual_to_string = function
   | `const	-> "const"
   | `restrict	-> "restrict"
   | `volatile	-> "volatile"
 
-let pp_type_quals qs =
-  let pp_qual q = pp_to_string type_qual_to_string q >>> pp_nbsp in
+let pp_type_quals pos qs =
+  let pp_qual q =
+    match pos with
+    | `prefix	-> pp_to_string type_qual_to_string q +++ pp_space
+    | `postfix	-> pp_space +++ pp_to_string type_qual_to_string q
+  in
   pp_list ~elem:pp_qual qs
 
 let pp_ref_type = function
@@ -109,6 +113,7 @@ let pp_array_sizes sizes =
   pp_list ~elem:pp_size sizes
 
 let rec pp_type ?(partial=pp_empty) = function
+  | TVoid		-> pp_string "void" +++ partial
   | TPrim (qs,p)	-> pp_prim qs p partial
   | TRef (qs,r)		-> pp_ref qs r partial
   | TPtr (qs,t)		-> pp_ptr qs t partial
@@ -116,38 +121,49 @@ let rec pp_type ?(partial=pp_empty) = function
   | TArr at		-> pp_arr at partial
 
 and pp_prim qs p partial =
-  pp_type_quals qs >>> pp_prim_type p >>> pp_space >>> partial
+  pp_type_quals `prefix qs +++ pp_prim_type p +++ partial
 
 and pp_ref qs r partial =
-  pp_type_quals qs >>> pp_ref_type r >>> pp_space >>> partial
+  pp_type_quals `prefix qs +++ pp_ref_type r +++ partial
 
 and pp_ptr qs t partial =
-  let partial = pp_string "*" >>> pp_type_quals qs >>> partial in
-  match t with
-  (* Pointers to functions and arrays need to be parenthesized *)
-  | TFunc _
-  | TArr _	-> pp_type ~partial:(pp_parenthesize partial) t
-  | s		-> pp_type ~partial t
+  let partial = pp_string "*" +++ pp_type_quals `postfix qs +++ partial in
+  let partial = 
+    match t with
+    (* Pointers to functions and arrays need to be parenthesized *)
+    | TFunc _
+    | TArr _	-> pp_space +++ pp_box ~indent:0 (pp_parenthesize partial)
+    | s		-> partial
+  in
+  pp_type ~partial t
 
 and pp_func (t,args,arity) partial =
-  pp_type ~partial:(partial >>> pp_arg_list args arity) t
+  pp_type ~partial:(partial +++ pp_arg_list args arity) t
 
-and pp_arg (t,name) =
-  pp_type t ~partial:(pp_string name)
+and pp_arg t =
+  pp_box ~indent:std_indent (pp_type t)
 
 and pp_arg_list args arity =
   let pp_args = pp_list ~elem:pp_arg ~sep:pp_comma args in
-  match arity with
-  | `fixed	-> pp_parenthesize pp_args
-  | `variadic	-> pp_parenthesize (pp_args >>> pp_comma >>> pp_string "...")
+  let pp_args =
+    match arity with
+    | `fixed	-> pp_args
+    | `variadic	-> pp_args +++ pp_comma +++ pp_string "..."
+  in
+  pp_parenthesize (pp_hvbox ~indent:0 pp_args)
 
 and pp_arr (t,sizes) partial =
-  pp_type ~partial:(partial >>> pp_list ~elem:pp_array_size sizes) t
+  let pp_sizes = pp_list ~elem:pp_array_size sizes in
+  let partial = pp_box ~indent:std_indent (partial +++ pp_sizes) in
+  pp_type ~partial t
 
 and pp_array_size i =
   pp_bracket_square (if i < 0 then pp_empty else pp_int i)
 
-(* Expressions *)
+let pp_decl t name =
+  pp_hbox (pp_type ~partial:(pp_space +++ pp_string name) t)
+
+(* Expressions -------------------------------------------------------------*)
 
 let rec pp_expr x =
   match x with
@@ -184,7 +200,13 @@ and pp_comma_separated_element x =
     pp_parenthesize pp_x
 
 and pp_arglist args =
-  pp_parenthesize (pp_list ~elem:pp_comma_separated_element ~sep:pp_comma args)
+  let pp_args = 
+    if args = [] then
+      pp_string "void"
+    else
+      pp_list ~elem:pp_comma_separated_element ~sep:pp_comma args
+  in
+  pp_parenthesize pp_args
 
 and pp_subexpr placement rparent x =
   let rx = Expr.precedence x in
@@ -201,19 +223,19 @@ and pp_subexpr placement rparent x =
     | _, _ -> pp_x
 
 and pp_call f args =
-  pp_subexpr `L Expr.call_precedence f >>> pp_arglist args
+  pp_subexpr `L Expr.call_precedence f +++ pp_arglist args
 
 and pp_prefix r ops x =
-  pp_string ops >>> pp_subexpr `R r x
+  pp_string ops +++ pp_subexpr `R r x
 
 and pp_postfix r x ops =
-  pp_subexpr `L r x >>> pp_string ops
+  pp_subexpr `L r x +++ pp_string ops
 
 and pp_infix r x ops y =
   let pp_left	= pp_subexpr `L r x
-  and pp_op	= pp_nbsp >>> pp_string ops >>> pp_space
+  and pp_op	= pp_nbsp +++ pp_string ops +++ pp_space
   and pp_right	= pp_subexpr `R r y in
-  pp_left >>> pp_op >>> pp_right
+  pp_left +++ pp_op +++ pp_right
 
 and pp_op1 r op x =
   match op with
@@ -224,7 +246,7 @@ and pp_op1 r op x =
   | Op1Arith `PostDec	-> pp_postfix r		x "--"
   | Op1Bit `Not		-> pp_prefix  r "~"	x
   | Op1Logic `Not	-> pp_prefix  r "!"	x
-  | Op1Cast t		-> pp_parenthesize (pp_type t) >>> pp_subexpr `R r x
+  | Op1Cast t		-> pp_parenthesize (pp_type t) +++ pp_subexpr `R r x
   | Op1Deref		-> pp_prefix  r "*"	x
   | Op1StructDeref f	-> pp_postfix r 	x ("->"^f)
   | Op1Ref		-> pp_prefix  r "&" 	x
@@ -263,8 +285,8 @@ and pp_op2 r op x y =
   | Op2Logic o		-> pp_infix r x (logic2_to_string o) y
   | Op2Bit o		-> pp_infix r x (bit2_to_string   o) y
   | Op2Assign		-> pp_infix r x "="                  y
-  | Op2Subscript	-> pp_subexpr `L r x >>> pp_bracket_square (pp_expr x)
-  | Op2Comma		-> pp_subexpr `L r x >>> pp_comma >>> pp_subexpr `R r y
+  | Op2Subscript	-> pp_subexpr `L r x +++ pp_bracket_square (pp_expr x)
+  | Op2Comma		-> pp_subexpr `L r x +++ pp_comma +++ pp_subexpr `R r y
 
 and pp_stmt_expr stmts =
   failwith "TODO"
