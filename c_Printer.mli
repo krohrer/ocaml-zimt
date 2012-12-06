@@ -15,7 +15,7 @@ val pp_cut : pp
 val pp_break : int -> int -> pp
 val pp_list : elem:('a -> pp) -> ?sep:pp -> 'a list -> pp
 val pp_seq : pp list -> pp
-val pp_bracket : string -> pp -> string -> pp
+val pp_bracket : string -> string -> pp -> pp
 val pp_parenthesize : pp -> pp
 val pp_bracket_curly : pp -> pp
 val pp_bracket_square : pp -> pp
@@ -30,3 +30,4 @@ val pp_hvbox : indent:int -> pp -> pp
 val pp_type : ?partial:pp -> C_UntypedAST.t -> pp
 val pp_decl : C_UntypedAST.t -> C_UntypedAST.ident -> pp
 val pp_expr : C_UntypedAST.x -> pp 
+val pp_stmt : C_UntypedAST.st -> pp

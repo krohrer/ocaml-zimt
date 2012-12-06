@@ -46,19 +46,23 @@ and x =
   | XOp2		of op2 * x * x
   | XStmtExpr		of st list
   | XIIf		of x * x * x
-  | XInit		of x list
-  | XDInit		of (ident * x) list
+  | XInit		of init list
+
+and init =		x
 
 and st =
+  | StEmpty
   | StExpr		of x
   | StBlock		of st list
   | StDecl		of t * ident * x option
-  | StSwitch		of x * (lit * st list) * st list
+  | StSwitch		of x * st
+  | StCase		of [`lit of lit | `ident of ident | `default]
+  | StLabel		of ident
+  | StGoto		of ident
   | StFor		of x * x * x * st
   | StWhile		of x * st
   | StDoWhile		of st * x
-  | StIf		of x * x * x
-  | StNop
+  | StIf		of x * st * st
   | StBreak
   | StContinue
   | StReturn		of x

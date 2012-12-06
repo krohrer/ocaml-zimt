@@ -29,8 +29,7 @@ module Expr =
       (* These are either atomic, or properly bracketed. *)
       | XIdent _
       | XStmtExpr _
-      | XInit _
-      | XDInit _			-> 0
+      | XInit _				-> 0
       | XCall _				-> call_precedence
       | XLit l				-> lit_precedence l
       | XOp1 (o,_)			-> op1_precedence o

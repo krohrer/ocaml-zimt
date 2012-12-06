@@ -35,10 +35,10 @@ let pp_list ~elem ?(sep=pp_empty) list ff =
 
 let pp_seq = List.fold_left (+++) pp_empty
 
-let pp_bracket sopen pp sclose = pp_string sopen +++ pp +++ pp_string sclose
-let pp_parenthesize pp = pp_bracket "(" pp ")"
-let pp_bracket_curly pp = pp_bracket "{" pp "}"
-let pp_bracket_square pp = pp_bracket "[" pp "]"
+let pp_bracket sopen sclose pp = pp_string sopen +++ pp +++ pp_string sclose
+let pp_parenthesize pp = pp_bracket "(" ")" pp
+let pp_bracket_curly pp = pp_bracket "{" "}" pp
+let pp_bracket_square pp = pp_bracket "[" "]" pp
 
 let pp_comma = pp_string "," +++ pp_space
 
@@ -165,6 +165,12 @@ let pp_decl t name =
 
 (* Expressions -------------------------------------------------------------*)
 
+let pp_paren_expr ?(cond=true) pp =
+  if cond then
+    pp_box ~indent:1 (pp_parenthesize pp)
+  else 
+    pp
+
 let rec pp_expr x =
   match x with
   | XQuote s			-> pp_string s
@@ -175,8 +181,7 @@ let rec pp_expr x =
   | XOp2 (op,a,b)		-> pp_op2 (Expr.precedence x) op a b
   | XStmtExpr stmts		-> pp_stmt_expr stmts
   | XIIf (p,t,f)		-> pp_inline_if (Expr.precedence x) p t f
-  | XInit xs			-> pp_initializer xs
-  | XDInit xs			-> pp_designated_initializer xs
+  | XInit is			-> pp_initializer is
 
 and pp_literal = function
   | LInt i	-> pp_format "%d" i
@@ -191,22 +196,22 @@ and pp_literal = function
   | LFloat32 f	-> pp_format "%.9gF" f
   | LFloat64 f	-> pp_format "%.18g" f
 
-and pp_comma_separated_element x =
+and pp_comma_separated_expr x =
   let rx = Expr.precedence x in
   let pp_x = pp_expr x in
-  if rx < Expr.comma_precedence then
-    pp_x
-  else
-    pp_parenthesize pp_x
+  pp_paren_expr ~cond:(rx < Expr.comma_precedence) pp_x
+
+and pp_comma_separated_expr_list xs =
+  pp_list ~elem:pp_comma_separated_expr ~sep:pp_comma xs
 
 and pp_arglist args =
   let pp_args = 
     if args = [] then
       pp_string "void"
     else
-      pp_list ~elem:pp_comma_separated_element ~sep:pp_comma args
+      pp_comma_separated_expr_list args
   in
-  pp_parenthesize pp_args
+  pp_parenthesize (pp_hvbox ~indent:0 pp_args)
 
 and pp_subexpr placement rparent x =
   let rx = Expr.precedence x in
@@ -214,12 +219,12 @@ and pp_subexpr placement rparent x =
   if rx < rparent then
     pp_x
   else if rx > rparent then
-    pp_parenthesize pp_x
+    pp_paren_expr pp_x
   else
     let assoc = Expr.associativity rx in
     match placement, assoc with
-    | `L, `R2L -> pp_parenthesize pp_x
-    | `R, `L2R -> pp_parenthesize pp_x
+    | `L, `R2L -> pp_paren_expr pp_x
+    | `R, `L2R -> pp_paren_expr pp_x
     | _, _ -> pp_x
 
 and pp_call f args =
@@ -246,7 +251,7 @@ and pp_op1 r op x =
   | Op1Arith `PostDec	-> pp_postfix r		x "--"
   | Op1Bit `Not		-> pp_prefix  r "~"	x
   | Op1Logic `Not	-> pp_prefix  r "!"	x
-  | Op1Cast t		-> pp_parenthesize (pp_type t) +++ pp_subexpr `R r x
+  | Op1Cast t		-> pp_paren_expr (pp_type t) +++ pp_subexpr `R r x
   | Op1Deref		-> pp_prefix  r "*"	x
   | Op1StructDeref f	-> pp_postfix r 	x ("->"^f)
   | Op1Ref		-> pp_prefix  r "&" 	x
@@ -289,13 +294,80 @@ and pp_op2 r op x y =
   | Op2Comma		-> pp_subexpr `L r x +++ pp_comma +++ pp_subexpr `R r y
 
 and pp_stmt_expr stmts =
-  failwith "TODO"
+  let pp_stmts = pp_list ~elem:pp_stmt ~sep:pp_space stmts in
+  pp_hvbox ~indent:3 (pp_bracket "({" "})" (pp_space +++ pp_stmts +++ pp_space))
 
 and pp_inline_if r pred bt bf =
-  failwith "TODO"
+  let pp_pred	= pp_paren_expr ~cond:(r < Expr.precedence pred) (pp_expr pred)
+  and pp_true	= pp_paren_expr ~cond:(r < Expr.precedence bt  ) (pp_expr bt  )
+  and pp_false	= pp_paren_expr ~cond:(r < Expr.precedence bf  ) (pp_expr bf  ) in
+  pp_box ~indent:0 (pp_pred
+		    +++ pp_space +++ pp_string "? " +++ pp_true
+		    +++ pp_space +++ pp_string ": " +++ pp_false)
 
 and pp_initializer xs =
+  let pp_inits = pp_comma_separated_expr_list xs in
+  pp_box ~indent:2 (pp_bracket_curly (pp_space +++ pp_inits +++ pp_space))
+
+(* Statements --------------------------------------------------------------*)
+
+and pp_stmt = function
+  | StEmpty				-> pp_empty
+  | StExpr x				-> pp_st_expr x
+  | StBlock sts				-> pp_st_block sts
+  | StDecl (t,n,xopt)			-> pp_st_decl t n xopt
+  | StSwitch (x,st)			-> pp_st_switch x st
+  | StCase c				-> pp_st_case c
+  | StLabel n				-> pp_st_label n
+  | StGoto n				-> pp_st_goto n
+  | StFor (xinit,xpred,xnext,st)	-> pp_st_for xinit xpred xnext st
+  | StWhile (x,st)			-> pp_st_while x st
+  | StDoWhile (st,x)			-> pp_st_do_while st x
+  | StIf (xpred,sttrue,stfalse)		-> pp_st_if xpred sttrue stfalse
+  | StBreak				-> pp_st_break
+  | StContinue				-> pp_st_continue
+  | StReturn x				-> pp_st_return x
+    
+and pp_st_expr x =
   failwith "TODO"
 
-and pp_designated_initializer xs =
+and pp_st_block sts =
+  failwith "TODO"
+
+and pp_st_decl t n xopt =
+  failwith "TODO"
+
+and pp_st_switch x st =
+  failwith "TODO"
+
+and pp_st_case = function
+  | `lit l	-> failwith "TODO"
+  | `ident n	-> failwith "TODO"
+  | `default	-> failwith "TODO"
+
+and pp_st_label n =
+  failwith "TODO"
+
+and pp_st_goto n =
+  failwith "TODO"
+
+and pp_st_for xinit xpred xnext st =
+  failwith "TODO"
+
+and pp_st_while x st =
+  failwith "TODO"
+
+and pp_st_do_while st x =
+  failwith "TODO"
+
+and pp_st_if xpred sttrue stfalse =
+  failwith "TODO"
+
+and pp_st_break =
+  failwith "TODO"
+
+and pp_st_continue =
+  failwith "TODO"
+
+and pp_st_return x =
   failwith "TODO"
