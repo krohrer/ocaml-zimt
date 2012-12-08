@@ -27,9 +27,9 @@ let pp_nbsp_opt ~spc pp =
   if spc then pp_nbsp +++ pp else pp
 
 let _ =
-  let decl n t = pp_hbox *** pp_decl t n +++ pp_cut in
+  let decl n t = pp_hbox *** pp_decl t n None +++ pp_cut in
   let pp = 
-    pp_vbox ~indent:0 *** pp_seq [
+    pp_vbox ~ind:0 *** pp_seq [
       decl "a" $ void;
       decl "b" $ int;
       decl "c" $ ptr int;

@@ -18,6 +18,7 @@ module Expr :
 
     val call_precedence	: rank
     val comma_precedence : rank
+    val assign_precedence : rank
   end
 
 module Stmt :

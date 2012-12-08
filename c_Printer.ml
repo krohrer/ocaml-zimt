@@ -42,8 +42,8 @@ let pp_bracket_square pp = pp_bracket "[" "]" pp
 
 let pp_comma = pp_string "," +++ pp_space
 
-let pp_box ~indent pp ff =
-  Format.pp_open_box ff indent;
+let pp_box ~ind pp ff =
+  Format.pp_open_box ff ind;
   pp ff;
   Format.pp_close_box ff ()
   
@@ -52,13 +52,13 @@ let pp_hbox pp ff =
   pp ff;
   Format.pp_close_box ff ()
 
-let pp_vbox ~indent pp ff =
-  Format.pp_open_vbox ff indent;
+let pp_vbox ~ind pp ff =
+  Format.pp_open_vbox ff ind;
   pp ff;
   Format.pp_close_box ff ()
 
-let pp_hvbox ~indent pp ff =
-  Format.pp_open_hvbox ff indent;
+let pp_hvbox ~ind pp ff =
+  Format.pp_open_hvbox ff ind;
   pp ff;
   Format.pp_close_box ff ()
 
@@ -132,7 +132,7 @@ and pp_ptr qs t partial =
     match t with
     (* Pointers to functions and arrays need to be parenthesized *)
     | TFunc _
-    | TArr _	-> pp_space +++ pp_box ~indent:0 (pp_parenthesize partial)
+    | TArr _	-> pp_space +++ pp_box ~ind:0 (pp_parenthesize partial)
     | s		-> partial
   in
   pp_type ~partial t
@@ -141,7 +141,7 @@ and pp_func (t,args,arity) partial =
   pp_type ~partial:(partial +++ pp_arg_list args arity) t
 
 and pp_arg t =
-  pp_box ~indent:std_indent (pp_type t)
+  pp_box ~ind:std_indent (pp_type t)
 
 and pp_arg_list args arity =
   let pp_args = pp_list ~elem:pp_arg ~sep:pp_comma args in
@@ -150,28 +150,37 @@ and pp_arg_list args arity =
     | `fixed	-> pp_args
     | `variadic	-> pp_args +++ pp_comma +++ pp_string "..."
   in
-  pp_parenthesize (pp_hvbox ~indent:0 pp_args)
+  pp_parenthesize (pp_hvbox ~ind:0 pp_args)
 
 and pp_arr (t,sizes) partial =
   let pp_sizes = pp_list ~elem:pp_array_size sizes in
-  let partial = pp_box ~indent:std_indent (partial +++ pp_sizes) in
+  let partial = pp_box ~ind:std_indent (partial +++ pp_sizes) in
   pp_type ~partial t
 
 and pp_array_size i =
   pp_bracket_square (if i < 0 then pp_empty else pp_int i)
 
-let pp_decl t name =
-  pp_hbox (pp_type ~partial:(pp_space +++ pp_string name) t)
-
 (* Expressions -------------------------------------------------------------*)
 
-let pp_paren_expr ?(cond=true) pp =
-  if cond then
-    pp_box ~indent:1 (pp_parenthesize pp)
-  else 
-    pp
+(* declarations are not strictly expressions, but hey. *)
+let rec pp_decl t name xopt =
+  let ppd = pp_type ~partial:(pp_space +++ pp_string name) t 
+  and ppinit =
+    match xopt with
+    | None	-> pp_empty 
+    | Some x	->
+      pp_string " =" +++ pp_space +++ pp_subexpr `R Expr.assign_precedence x
+  in
+  ppd +++ ppinit
 
-let rec pp_expr x =
+and pp_paren_expr ?(cond=true) x =
+  let ppe = pp_expr x in
+  if cond then
+    pp_box ~ind:1 (pp_parenthesize ppe)
+  else 
+    ppe
+
+and pp_expr x =
   match x with
   | XQuote s			-> pp_string s
   | XLit l			-> pp_literal l
@@ -198,8 +207,7 @@ and pp_literal = function
 
 and pp_comma_separated_expr x =
   let rx = Expr.precedence x in
-  let pp_x = pp_expr x in
-  pp_paren_expr ~cond:(rx < Expr.comma_precedence) pp_x
+  pp_paren_expr ~cond:(rx < Expr.comma_precedence) x
 
 and pp_comma_separated_expr_list xs =
   pp_list ~elem:pp_comma_separated_expr ~sep:pp_comma xs
@@ -211,21 +219,20 @@ and pp_arglist args =
     else
       pp_comma_separated_expr_list args
   in
-  pp_parenthesize (pp_hvbox ~indent:0 pp_args)
+  pp_parenthesize (pp_hvbox ~ind:0 pp_args)
 
 and pp_subexpr placement rparent x =
   let rx = Expr.precedence x in
-  let pp_x = pp_expr x in
   if rx < rparent then
-    pp_x
+    pp_expr x
   else if rx > rparent then
-    pp_paren_expr pp_x
+    pp_paren_expr x
   else
     let assoc = Expr.associativity rx in
     match placement, assoc with
-    | `L, `R2L -> pp_paren_expr pp_x
-    | `R, `L2R -> pp_paren_expr pp_x
-    | _, _ -> pp_x
+    | `L, `R2L -> pp_paren_expr x
+    | `R, `L2R -> pp_paren_expr x
+    | _, _ -> pp_expr x
 
 and pp_call f args =
   pp_subexpr `L Expr.call_precedence f +++ pp_arglist args
@@ -242,6 +249,9 @@ and pp_infix r x ops y =
   and pp_right	= pp_subexpr `R r y in
   pp_left +++ pp_op +++ pp_right
 
+and pp_cast r t x =
+  pp_box ~ind:1 (pp_parenthesize (pp_type t)) +++ pp_subexpr `R r x
+
 and pp_op1 r op x =
   match op with
   | Op1Arith `Neg      	-> pp_prefix  r "-"	x
@@ -251,11 +261,11 @@ and pp_op1 r op x =
   | Op1Arith `PostDec	-> pp_postfix r		x "--"
   | Op1Bit `Not		-> pp_prefix  r "~"	x
   | Op1Logic `Not	-> pp_prefix  r "!"	x
-  | Op1Cast t		-> pp_paren_expr (pp_type t) +++ pp_subexpr `R r x
   | Op1Deref		-> pp_prefix  r "*"	x
   | Op1StructDeref f	-> pp_postfix r 	x ("->"^f)
   | Op1Ref		-> pp_prefix  r "&" 	x
   | Op1StructRef f	-> pp_postfix r 	x ("."^f)
+  | Op1Cast t		-> pp_cast r t x
 
 and arith2_to_string = function
   | `Add	-> "+"
@@ -294,80 +304,142 @@ and pp_op2 r op x y =
   | Op2Comma		-> pp_subexpr `L r x +++ pp_comma +++ pp_subexpr `R r y
 
 and pp_stmt_expr stmts =
-  let pp_stmts = pp_list ~elem:pp_stmt ~sep:pp_space stmts in
-  pp_hvbox ~indent:3 (pp_bracket "({" "})" (pp_space +++ pp_stmts +++ pp_space))
+  let pp_stmts = pp_list ~elem:pp_stmt stmts in
+  pp_hvbox ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_space))
 
 and pp_inline_if r pred bt bf =
-  let pp_pred	= pp_paren_expr ~cond:(r < Expr.precedence pred) (pp_expr pred)
-  and pp_true	= pp_paren_expr ~cond:(r < Expr.precedence bt  ) (pp_expr bt  )
-  and pp_false	= pp_paren_expr ~cond:(r < Expr.precedence bf  ) (pp_expr bf  ) in
-  pp_box ~indent:0 (pp_pred
-		    +++ pp_space +++ pp_string "? " +++ pp_true
-		    +++ pp_space +++ pp_string ": " +++ pp_false)
+  let pp_pred	= pp_paren_expr ~cond:(r < Expr.precedence pred) pred
+  and pp_true	= pp_paren_expr ~cond:(r < Expr.precedence bt  ) bt
+  and pp_false	= pp_paren_expr ~cond:(r < Expr.precedence bf  ) bf in
+  pp_box ~ind:0 (pp_pred
+		 +++ pp_space +++ pp_string "? " +++ pp_true
+		 +++ pp_space +++ pp_string ": " +++ pp_false)
 
 and pp_initializer xs =
   let pp_inits = pp_comma_separated_expr_list xs in
-  pp_box ~indent:2 (pp_bracket_curly (pp_space +++ pp_inits +++ pp_space))
+  pp_box ~ind:2 (pp_bracket_curly (pp_space +++ pp_inits +++ pp_space))
 
 (* Statements --------------------------------------------------------------*)
+(* Statements include an implicit space before the actual code. This
+   is so that labels can be indented back by prefixing them by the
+   appropriate pp_break statement instead of pp_space. *)
 
 and pp_stmt = function
-  | StEmpty				-> pp_empty
-  | StExpr x				-> pp_st_expr x
-  | StBlock sts				-> pp_st_block sts
-  | StDecl (t,n,xopt)			-> pp_st_decl t n xopt
-  | StSwitch (x,st)			-> pp_st_switch x st
-  | StCase c				-> pp_st_case c
-  | StLabel n				-> pp_st_label n
-  | StGoto n				-> pp_st_goto n
-  | StFor (xinit,xpred,xnext,st)	-> pp_st_for xinit xpred xnext st
-  | StWhile (x,st)			-> pp_st_while x st
-  | StDoWhile (st,x)			-> pp_st_do_while st x
-  | StIf (xpred,sttrue,stfalse)		-> pp_st_if xpred sttrue stfalse
-  | StBreak				-> pp_st_break
-  | StContinue				-> pp_st_continue
-  | StReturn x				-> pp_st_return x
+  | StEmpty		-> pp_st_empty
+  | StExpr x		-> pp_st_expr x
+  | StBlock _ as s	-> pp_bracket_stmt s
+  | StDecl (t,n,xopt)	-> pp_st_decl t n xopt
+  | StSwitch (x,s)	-> pp_st_switch x s
+  | StLabeled (l,s)	-> pp_st_label l +++ pp_stmt s
+  | StGoto n		-> pp_st_goto n
+  | StFor (ipn, s)	-> pp_st_for ipn s
+  | StWhile (x,s)	-> pp_st_while x s
+  | StDoWhile (s,x)	-> pp_st_do_while s x
+  | StIf (xp,st,sf)	-> pp_st_if xp st sf
+  | StBreak		-> pp_st_break ()
+  | StContinue		-> pp_st_continue ()
+  | StReturn x		-> pp_st_return x
+
+and pp_st_empty =
+  pp_empty
+
+(* As it stands, pp_bracket_stmt has the closing bracket \} always on
+   a new line. *)
+and pp_bracket_stmt ?prefix ?postfix s =
+  let ppo = 
+    match prefix with
+    | None		-> pp_string "{"
+    | Some pp		-> pp_hbox (pp +++ pp_string " {")
+  and ppc =
+    match postfix with
+    | None		-> pp_string "}"
+    | Some pp		-> pp_hbox (pp_string "} " +++ pp)
+  and ppb =
+    match s with
+    | StEmpty		-> pp_empty
+    | StBlock sts	-> pp_list ~elem:pp_stmt sts
+    | s			-> pp_stmt s
+  in
+  pp_space +++ pp_vbox ~ind:4 (ppo +++ ppb +++ pp_break 0 ~-4 +++ ppc)
+
+and pp_single_stmt pp =
+  pp_space +++ pp_box ~ind:2 (pp +++ pp_string ";")
     
+
 and pp_st_expr x =
-  failwith "TODO"
+  pp_single_stmt (pp_expr x);
 
-and pp_st_block sts =
-  failwith "TODO"
+and pp_st_decl t name xopt =
+  pp_single_stmt (pp_decl t name xopt)
 
-and pp_st_decl t n xopt =
-  failwith "TODO"
 
-and pp_st_switch x st =
-  failwith "TODO"
-
-and pp_st_case = function
-  | `lit l	-> failwith "TODO"
-  | `ident n	-> failwith "TODO"
-  | `default	-> failwith "TODO"
-
-and pp_st_label n =
-  failwith "TODO"
+and pp_st_label l =
+  let ind, pp_lbl = 
+    match l with
+    | LCaseConst l	-> ~-4, pp_string "case " +++ pp_literal l
+    | LCaseNamed n	-> ~-4, pp_string "case " +++ pp_string n
+    | LCaseDefault	-> ~-4, pp_string "default"
+    | LLabel n		-> ~-2, pp_string n
+  in
+  pp_break 1 ind +++ pp_lbl +++ pp_string ":"
 
 and pp_st_goto n =
-  failwith "TODO"
+  pp_single_stmt (pp_string "goto " +++ pp_string n)
 
-and pp_st_for xinit xpred xnext st =
-  failwith "TODO"
 
-and pp_st_while x st =
-  failwith "TODO"
+and pp_st_switch x s =
+  let prefix = pp_string "switch " +++ pp_paren_expr x in
+  pp_bracket_stmt ~prefix s
 
-and pp_st_do_while st x =
-  failwith "TODO"
+and pp_st_for ipn s =
+  let pph = 
+    match ipn with
+    | `none, None, None	-> pp_string ";;"
+    | init, pred, next	->
+      let ppinit =
+	match init with
+	| `none			-> pp_empty
+	| `decl (t, name, xopt)	-> pp_decl t name xopt
+	| `expr x		-> pp_expr x
+      and pppred = 
+	match pred with
+	| None		-> pp_space
+	| Some x	-> pp_space +++ pp_expr x
+      and ppnext =
+	match next with
+	| None		-> pp_space
+	| Some x	-> pp_space +++ pp_expr x
+      and ppsep = pp_string ";" in
+      ppinit +++ ppsep +++ pppred +++ ppsep +++ ppnext
+  in
+  let prefix = pp_string "for (" +++ pp_hvbox ~ind:0 pph +++ pp_string ")" in
+  pp_bracket_stmt ~prefix s
 
-and pp_st_if xpred sttrue stfalse =
-  failwith "TODO"
+and pp_st_while x s =
+  let prefix = pp_string "while " +++ pp_paren_expr x in
+  pp_bracket_stmt ~prefix s
 
-and pp_st_break =
-  failwith "TODO"
+and pp_st_do_while s x =
+  let prefix = pp_string "do"
+  and postfix = pp_string "while " +++ pp_paren_expr x in
+  pp_bracket_stmt ~prefix ~postfix s
 
-and pp_st_continue =
-  failwith "TODO"
+and pp_st_if xpred strue sfalse =
+  let pptrue = 
+    pp_bracket_stmt ~prefix:(pp_string "if " +++ pp_paren_expr xpred) strue
+  and ppfalse =
+    match sfalse with
+    | StEmpty	-> pp_empty
+    | s		-> pp_bracket_stmt ~prefix:(pp_string "else") s
+  in
+  pptrue +++ ppfalse
+
+
+and pp_st_break () =
+  pp_single_stmt (pp_string "break")
+
+and pp_st_continue () =
+  pp_single_stmt (pp_string "continue")
 
 and pp_st_return x =
-  failwith "TODO"
+  pp_single_stmt (pp_string "return " +++ pp_paren_expr x)

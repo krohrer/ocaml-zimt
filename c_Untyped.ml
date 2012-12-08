@@ -81,8 +81,9 @@ module Expr =
       | Op2Bit `Or			-> 12
       | Op2Logic `And			-> 13
       | Op2Logic `Or			-> 14
-      | Op2Assign			-> 15
+      | Op2Assign			-> assign_precedence
       | Op2Comma			-> comma_precedence
+    and assign_precedence		=  15
     and comma_precedence		=  17
   end
 

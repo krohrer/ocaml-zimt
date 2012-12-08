@@ -54,12 +54,11 @@ and st =
   | StEmpty
   | StExpr		of x
   | StBlock		of st list
-  | StDecl		of t * ident * x option
+  | StDecl		of decl
   | StSwitch		of x * st
-  | StCase		of [`lit of lit | `ident of ident | `default]
-  | StLabel		of ident
+  | StLabeled		of label * st
   | StGoto		of ident
-  | StFor		of x * x * x * st
+  | StFor		of st_for * st (* First one a statement because of decls *)
   | StWhile		of x * st
   | StDoWhile		of st * x
   | StIf		of x * st * st
@@ -67,9 +66,14 @@ and st =
   | StContinue
   | StReturn		of x
 
-and decl =
-  | DFun		of t * ident * t list * x
-  | DVar		of t * ident * x option
+and decl = t * ident * x option
+and st_for = [`none | `decl of decl | `expr of x] * x option * x option
+
+and label =
+  | LCaseConst		of lit
+  | LCaseNamed		of ident
+  | LCaseDefault
+  | LLabel		of ident
 
 and tlunit = decl list
 

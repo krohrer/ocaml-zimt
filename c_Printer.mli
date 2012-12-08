@@ -20,14 +20,14 @@ val pp_parenthesize : pp -> pp
 val pp_bracket_curly : pp -> pp
 val pp_bracket_square : pp -> pp
 
-val pp_box : indent:int -> pp -> pp
-val pp_vbox : indent:int -> pp -> pp
+val pp_box : ind:int -> pp -> pp
+val pp_vbox : ind:int -> pp -> pp
 val pp_hbox : pp -> pp
-val pp_hvbox : indent:int -> pp -> pp
+val pp_hvbox : ind:int -> pp -> pp
 
 (* The interesting stuff *)
 
 val pp_type : ?partial:pp -> C_UntypedAST.t -> pp
-val pp_decl : C_UntypedAST.t -> C_UntypedAST.ident -> pp
+val pp_decl : C_UntypedAST.t -> C_UntypedAST.ident -> C_UntypedAST.x option -> pp
 val pp_expr : C_UntypedAST.x -> pp 
 val pp_stmt : C_UntypedAST.st -> pp
