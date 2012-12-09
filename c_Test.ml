@@ -23,9 +23,6 @@ let const = function
 let ($) f x = f x
 let ( *** ) f x = f x
 
-let pp_nbsp_opt ~spc pp =
-  if spc then pp_nbsp +++ pp else pp
-
 let _ =
   let decl n t = pp_hbox *** pp_decl t n None +++ pp_cut in
   let pp = 
@@ -40,6 +37,22 @@ let _ =
       decl "h" $ arr (arr (ptr (ptr (func void [ptr void; const (ptr (func void [ptr void; ptr (const int)]))]))) [1]) [2];
       decl "i" $ arr (arr int [1;2]) [3];
       decl "j" $ func void [int; int; ptr void; arr (const int) [5;4]];
+      pp_stmt (SBlock [
+	SDecl (fptr, "f", None);
+	SBlock [
+	  SExpr (XIIf (XQuote "X",
+		       XLit (LInt 1),
+		       XLit (LStr "hello")));
+	  SSwitch (XQuote "Y", SBlock [
+	    SLabeled (LCaseConst (LInt 1), SBlock [
+	      SExpr (XQuote "CAMLparam1(X)");
+	      SBreak;
+	    ]);
+	    SLabeled (LCaseDefault, SReturn (XIdent "Y"))]);
+	  SIf (XIdent "true", SBlock [], SEmpty);
+	  SIf (XIdent "false", SBlock [], SBlock []);
+	]
+      ]);
     ]
   in
   Format.set_margin 40;

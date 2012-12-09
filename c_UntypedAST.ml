@@ -44,30 +44,30 @@ and x =
   | XCall		of x * x list
   | XOp1		of op1 * x
   | XOp2		of op2 * x * x
-  | XStmtExpr		of st list
+  | XStmtExpr		of s list
   | XIIf		of x * x * x
   | XInit		of init list
 
 and init =		x
 
-and st =
-  | StEmpty
-  | StExpr		of x
-  | StBlock		of st list
-  | StDecl		of decl
-  | StSwitch		of x * st
-  | StLabeled		of label * st
-  | StGoto		of ident
-  | StFor		of st_for * st (* First one a statement because of decls *)
-  | StWhile		of x * st
-  | StDoWhile		of st * x
-  | StIf		of x * st * st
-  | StBreak
-  | StContinue
-  | StReturn		of x
+and s =
+  | SEmpty
+  | SExpr		of x
+  | SBlock		of s list
+  | SDecl		of decl
+  | SSwitch		of x * s
+  | SLabeled		of label * s
+  | SGoto		of ident
+  | SFor		of s_for * s
+  | SWhile		of x * s
+  | SDoWhile		of s * x
+  | SIf			of x * s * s
+  | SBreak
+  | SContinue
+  | SReturn		of x
 
 and decl = t * ident * x option
-and st_for = [`none | `decl of decl | `expr of x] * x option * x option
+and s_for = [`none | `decl of decl | `expr of x] * x option * x option
 
 and label =
   | LCaseConst		of lit

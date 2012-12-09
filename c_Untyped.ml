@@ -89,7 +89,7 @@ module Expr =
 
 module Stmt =
   struct
-    type t = C_UntypedAST.st
+    type t = C_UntypedAST.s
   end
 
 module Embedded =
