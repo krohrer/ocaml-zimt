@@ -184,7 +184,7 @@ and pp_expr x =
   match x with
   | XQuote s			-> pp_string s
   | XLit l			-> pp_literal l
-  | XIdent n			-> pp_string n
+  | XId n			-> pp_string n
   | XCall (f,args)		-> pp_call f args
   | XOp1 (op,a)			-> pp_op1 (Expr.precedence x) op a
   | XOp2 (op,a,b)		-> pp_op2 (Expr.precedence x) op a b
@@ -305,7 +305,7 @@ and pp_op2 r op x y =
 
 and pp_stmt_expr stmts =
   let pp_stmts = pp_list ~elem:pp_stmt stmts in
-  pp_hvbox ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_spc))
+  pp_box ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_brk 1 ~-3))
 
 and pp_inline_if r pred bt bf =
   let pp_pred	= pp_paren_expr ~cond:(r < Expr.precedence pred) pred
@@ -373,10 +373,10 @@ and pp_decl_stmt t name xopt =
 and pp_label l =
   let ind, pp_lbl = 
     match l with
-    | LCaseConst l	-> ~-4, pp_string "case " +++ pp_literal l
-    | LCaseNamed n	-> ~-4, pp_string "case " +++ pp_string n
-    | LCaseDefault	-> ~-4, pp_string "default"
-    | LLabel n		-> ~-2, pp_string n
+    | CaseConst l	-> ~-4, pp_string "case " +++ pp_literal l
+    | CaseNamed n	-> ~-4, pp_string "case " +++ pp_string n
+    | CaseDefault	-> ~-4, pp_string "default"
+    | Label n		-> ~-2, pp_string n
   in
   pp_brk 1 ind +++ pp_lbl +++ pp_string ":"
 

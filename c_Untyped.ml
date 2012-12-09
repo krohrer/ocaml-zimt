@@ -27,7 +27,7 @@ module Expr =
 
     let rec precedence = function
       (* These are either atomic, or properly bracketed. *)
-      | XIdent _
+      | XId _
       | XStmtExpr _
       | XInit _				-> 0
       | XCall _				-> call_precedence
@@ -89,16 +89,15 @@ module Expr =
 
 module Stmt =
   struct
-    type t = C_UntypedAST.s
   end
 
 module Embedded =
   struct
     include C_UntypedAST
 
-    let var n		= XIdent n
+    let var n		= XId n
 
-    let call n args	= XCall (XIdent n, args)
+    let call n args	= XCall (XId n, args)
     let apply x args	= XCall (x, args)
 
     let ( ~- ) x 	= XOp1 (Op1Arith `Neg, x)
@@ -109,8 +108,10 @@ module Embedded =
     let not x		= XOp1 (Op1Logic `Not, x)
     let lnot x		= XOp1 (Op1Bit `Not, x)
     let cast t x	= XOp1 (Op1Cast t, x)
-    let ( ^! ) x f	= XOp1 (Op1StructDeref f, x)
-    let ( ^ ) x f	= XOp1 (Op1StructRef f, x)
+    let ( **! ) x f	= XOp1 (Op1StructDeref f, x)
+    let sderef x f	= x**!f
+    let ( **. ) x f	= XOp1 (Op1StructRef f, x)
+    let sref x f	= x**.f
     let ( ! ) x		= XOp1 (Op1Deref, x)
     let ref x		= XOp1 (Op1Ref, x)
 

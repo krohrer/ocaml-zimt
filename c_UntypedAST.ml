@@ -40,7 +40,7 @@ and field		= ident
 and x =
   | XQuote		of string
   | XLit		of lit
-  | XIdent		of ident
+  | XId			of ident
   | XCall		of x * x list
   | XOp1		of op1 * x
   | XOp2		of op2 * x * x
@@ -70,10 +70,10 @@ and decl = t * ident * x option
 and s_for = [`none | `decl of decl | `expr of x] * x option * x option
 
 and label =
-  | LCaseConst		of lit
-  | LCaseNamed		of ident
-  | LCaseDefault
-  | LLabel		of ident
+  | CaseConst		of lit
+  | CaseNamed		of ident
+  | CaseDefault
+  | Label		of ident
 
 and tlunit = decl list
 

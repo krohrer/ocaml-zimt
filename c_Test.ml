@@ -4,7 +4,7 @@ open C_Printer
 let int		= TPrim ([],PInt (`default,`int))
 let void	= TVoid
 let vptr	= TPtr ([`const], TVoid)
-let fptr	= TPtr ([`const], TFunc (void, [], `fixed))
+let fptr	= TPtr ([`const], TFunc (void, [void], `fixed))
 let fpa		= TArr (fptr, [-1])
 let mfp f	= TPtr ([`const], TFunc (void, [void; void], `fixed))
 
@@ -44,13 +44,33 @@ let _ =
 		       XLit (LInt 1),
 		       XLit (LStr "hello")));
 	  SSwitch (XQuote "Y", SBlock [
-	    SLabeled (LCaseConst (LInt 1), SBlock [
+	    SLabeled (CaseConst (LInt 1), SBlock [
 	      SExpr (XQuote "CAMLparam1(X)");
 	      SBreak;
 	    ]);
-	    SLabeled (LCaseDefault, SReturn (XIdent "Y"))]);
-	  SIf (XIdent "true", SBlock [], SEmpty);
-	  SIf (XIdent "false", SBlock [], SBlock []);
+	    SLabeled (CaseDefault, SReturn (XId "Y"))]);
+	  SIf (XId "true", SBlock [], SEmpty);
+	  SIf (XId "false", SBlock [], SBlock []);
+	  SLabeled (Label "l1", SLabeled (Label "l2", SExpr (XQuote "Hello")));
+	  SGoto "l1";
+	  SFor ((`none, None, None), SEmpty);
+	  SFor ((`decl (int, "i", Some (XLit (LInt 1))),
+		 Some (XOp2 (Op2Comp `Lt, XId "i", XLit (LInt 0))),
+		 Some (XOp1 (Op1Arith `PreInc, XId "i"))),
+		SBlock [
+		  SIf (XQuote "i", SBreak, SContinue)]);
+	  SWhile (
+	    C_Untyped.Embedded.(
+	      let x = var "x" and y = var "y" in
+	      XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
+			 SExpr (XQuote "sadfasdf")]),
+	    SEmpty);
+	  SDoWhile (SWhile (XId "true", SEmpty), XId "true");
+	  SExpr C_Untyped.Embedded.(
+	    let x = var "x" and y = var "y" in
+	    XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
+		       SExpr (XQuote "sadfasdf")]
+	  )
 	]
       ]);
     ]
