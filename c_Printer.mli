@@ -1,8 +1,13 @@
 type pp = Format.formatter -> unit
 
-(* Pretty printers as a monoid structure, or whatever you wanna call it. *)
+(* Pretty printers as a monoid structure, or whatever you wanna call it.
+
+    f +++ pp_emtpy === pp_empty +++ f
+    (f +++ g) +++ h === f +++ (g +++ h)
+*)
 val (+++) : pp -> pp -> pp
 val pp_empty : pp
+
 
 val ( *** ) : (pp -> pp) -> pp -> pp
 

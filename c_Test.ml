@@ -67,12 +67,23 @@ let _ =
 	    SEmpty);
 	  SDoWhile (SWhile (XId "true", SEmpty), XId "true");
 	  SExpr C_Untyped.Embedded.(
-	    let x = var "x" and y = var "y" in
-	    XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
-		       SExpr (XQuote "sadfasdf")]
+	    let x = var "x" and y = var "y" and z = var "z" in
+	    XStmtExpr [SExpr (cast int x * (y land ref y) + (x + sref y "blah" + sderef x "yeah"));
+		       SExpr (idx x y);
+		       SExpr (call "printf" [XLit (LStr "%d, %f"); XOp2 (Op2Comma, x, y); y; XIIf (x, y, z)])]
 	  )
 	]
       ]);
+      pp_stmt C_Untyped.Embedded.(block [
+	decl int "x" (intlit 0);
+	for_ever [
+	  expr (call "printf" [strlit "Hello world\n"]);
+	  expr (call "printf" [strlit "How are we today?\n"]);
+	];
+	let x = "x" in
+	for' int x (intlit 0) (var x < intlit 0) (inc (var x)) [
+	]
+      ])
     ]
   in
   Format.set_margin 40;

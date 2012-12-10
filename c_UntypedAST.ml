@@ -53,6 +53,7 @@ and init =		x
 and s =
   | SEmpty
   | SExpr		of x
+  | SSeq		of s list
   | SBlock		of s list
   | SDecl		of decl
   | SSwitch		of x * s
@@ -62,7 +63,7 @@ and s =
   | SWhile		of x * s
   | SDoWhile		of s * x
   | SIf			of x * s * s
-  | SBreak
+  | SBreak	
   | SContinue
   | SReturn		of x
 

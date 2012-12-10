@@ -7,7 +7,6 @@ type pp = Format.formatter -> unit
 
 let std_indent = 2
 
-(* Pretty printers form a monoid *)
 let pp_empty ff = ()
 let (+++) f g = fun ff -> f ff; g ff
 let ( *** ) f x = f x
@@ -207,18 +206,13 @@ and pp_literal = function
 
 and pp_comma_separated_expr x =
   let rx = Expr.precedence x in
-  pp_paren_expr ~cond:(rx < Expr.comma_precedence) x
+  pp_paren_expr ~cond:(rx >= Expr.comma_precedence) x
 
 and pp_comma_separated_expr_list xs =
   pp_list ~elem:pp_comma_separated_expr ~sep:pp_comma xs
 
 and pp_arglist args =
-  let pp_args = 
-    if args = [] then
-      pp_string "void"
-    else
-      pp_comma_separated_expr_list args
-  in
+  let pp_args = pp_comma_separated_expr_list args in
   pp_parenthesize (pp_hvbox ~ind:0 pp_args)
 
 and pp_subexpr placement rparent x =
@@ -300,7 +294,7 @@ and pp_op2 r op x y =
   | Op2Logic o		-> pp_infix r x (logic2_to_string o) y
   | Op2Bit o		-> pp_infix r x (bit2_to_string   o) y
   | Op2Assign		-> pp_infix r x "="                  y
-  | Op2Subscript	-> pp_subexpr `L r x +++ pp_bracket_square (pp_expr x)
+  | Op2Subscript	-> pp_subexpr `L r x +++ pp_bracket_square (pp_expr y)
   | Op2Comma		-> pp_subexpr `L r x +++ pp_comma +++ pp_subexpr `R r y
 
 and pp_stmt_expr stmts =
@@ -327,6 +321,7 @@ and pp_initializer xs =
 and pp_stmt = function
   | SEmpty		-> pp_empty
   | SExpr x		-> pp_expr_stmt x
+  | SSeq sl		-> pp_seq (List.map pp_stmt sl)
   | SBlock _ as s	-> pp_bracket_stmt s
   | SDecl (t,n,xopt)	-> pp_decl_stmt t n xopt
   | SSwitch (x,s)	-> pp_switch x s

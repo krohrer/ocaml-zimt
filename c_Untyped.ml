@@ -93,8 +93,9 @@ module Stmt =
 
 module Embedded =
   struct
-    include C_UntypedAST
+    open C_UntypedAST
 
+    (* Expressions *)
     let var n		= XId n
 
     let call n args	= XCall (XId n, args)
@@ -116,7 +117,8 @@ module Embedded =
     let ref x		= XOp1 (Op1Ref, x)
 
     let ( := ) x y	= XOp2 (Op2Assign, x, y)
-    let ( +! ) x y	= XOp2 (Op2Subscript, x, y)
+    let ( **@ ) x y	= XOp2 (Op2Subscript, x, y)
+    let idx x y		= x **@ y
 
     let ( + ) x y	= XOp2 (Op2Arith `Add, x, y)
     let ( - ) x y	= XOp2 (Op2Arith `Sub, x, y)
@@ -141,4 +143,37 @@ module Embedded =
     let ( lxor ) x y	= XOp2 (Op2Bit `Xor, x, y)
     let ( lsl ) x y	= XOp2 (Op2Bit `ShiftL, x, y)
     let ( lsr ) x y	= XOp2 (Op2Bit `ShiftR, x, y)
+
+    (* Literals *)
+    let intlit i	= XLit (LInt i)
+    let strlit s	= XLit (LStr s)
+
+    (* Statements *)
+    let block sl	= SBlock sl
+
+    let expr x		= SExpr x
+    let decl t n x	= SDecl (t, n, Some x)
+
+    let switch x sl	= SSwitch (x, block sl)
+
+    let switch x sl	= SSwitch (x, SBlock sl)
+    let case n sl	= SBlock (SLabeled (CaseNamed n, SEmpty) :: sl)
+    let lcase l	sl	= SBlock (SLabeled (CaseConst l, SEmpty) :: sl)
+    let default sl	= SBlock (SLabeled (CaseDefault, SEmpty) :: sl)
+
+    let for_ever sl		= SFor ((`none, None, None), SBlock sl)
+    let for' t n x c i sl	= SFor ((`decl (t, n, Some x),
+					 Some c,
+					 Some i),
+					SBlock sl)
+
+    let while' x sl	= SWhile (x, SBlock sl)
+    let do_while sl x	= SDoWhile (SBlock sl, x)
+    let if' c tl el	= SIf (c, SBlock tl, SBlock el)
+
+    let return x	= SReturn x
+    let break 		= SBreak
+    let continue 	= SContinue
+    let goto n		= SGoto n
+    let label n		= SLabeled (Label n, SEmpty)
   end
