@@ -5,26 +5,26 @@ scalar types *)
 type void' = unit
 
 (* Scalar types *)
-type int8'	= [`Int8]
-type int16'	= [`Int16]
-type int32'	= [`Int32]
-type int64'	= [`Int64]
-type natint'    = [`NatInt]
-type uint8'	= [`UInt8]
-type uint16'	= [`UInt16]
-type uint32'	= [`UInt32]
-type uint64'	= [`UInt64]
-type bool'	= [`Bool]
-type float16'	= [`Float16]
-type float32'	= [`Float32]
-type float64'	= [`Float64]
+type int8'	= [ `Int8 ]
+type int16'	= [ `Int16 ]
+type int32'	= [ `Int32 ]
+type int64'	= [ `Int64 ]
+type natint'    = [ `NatInt ]
+type uint8'	= [ `UInt8 ]
+type uint16'	= [ `UInt16 ]
+type uint32'	= [ `UInt32 ]
+type uint64'	= [ `UInt64 ]
+type bool'	= [ `Bool ]
+type float16'	= [ `Float16 ]
+type float32'	= [ `Float32 ]
+type float64'	= [ `Float64 ]
 (* Builtin type families *)
-type sints' = [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
-type uints' = [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
-type floats' = [ `Float16 | `Float32 | `Float64 ]
-type integers' = [sints'|uints']
-type numbers' = [integers'|floats']
-type signums' = [sints'|floats']
+type sints'	= [ `Int8 | `Int16 | `Int32 | `Int64 | `NatInt ]
+type uints'	= [ `UInt8 | `UInt16 | `UInt32 | `UInt64 ]
+type floats'	= [ `Float16 | `Float32 | `Float64 ]
+type integers'	= [ sints' | uints' ]
+type numbers'	= [ integers' | floats' ]
+type signums'	= [ sints' | floats' ]
 (* Builtin composite types *)
 type 'a ptr
 type 'a array'
@@ -94,9 +94,9 @@ and (_,_, _) op1 =
   | O1Logic	: [`Not]		-> (bool',bool', imm) op1
   | O1Cast	: 'a t			-> ('a,'b, imm) op1
   | O1Deref	: 			   ('a ptr,'a, _) op1
-  | O1SDeref	: ('a,'b) field		-> ('a ptr,'b, _) op1
   | O1Ref	:			   ('a,'a ptr, _) op1
-  | O1SRef	: ('a,'b) field		-> ('a     ,'b, _) op1
+  | O1SDeref	: ('a,'b) field		-> ('a ptr,'b, _) op1
+  | O1SRef	: ('a,'b) field		-> ('a    ,'b, _) op1
 
 and (_,_,_, _) op2 =
   | O2Arith	: 'a arith2			-> ('a,'a,'a, imm) op2
