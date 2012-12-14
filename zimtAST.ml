@@ -71,7 +71,6 @@ and _ x =
   (** Explicity sequencing of expressions *)
   | XDo		: void' x list * 'a x			-> 'a x
   (* TOOD : Add looping construct *)
-  (* TODO : Add setter *)
 
 
 (** Function signature *)

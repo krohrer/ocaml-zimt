@@ -1,2 +1,2 @@
 open ZimtAST
-
+open ZimtLang
