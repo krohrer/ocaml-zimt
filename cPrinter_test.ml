@@ -1,5 +1,5 @@
-open C_UntypedAST
-open C_Printer
+open CAST
+open CPrinter
 
 let int		= TPrim ([],PInt (`default,`int))
 let void	= TVoid
@@ -60,13 +60,13 @@ let _ =
 		SBlock [
 		  SIf (XQuote "i", SBreak, SContinue)]);
 	  SWhile (
-	    C_Untyped.Embedded.(
+	    CLang.Embedded.(
 	      let x = var "x" and y = var "y" in
 	      XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
 			 SExpr (XQuote "sadfasdf")]),
 	    SEmpty);
 	  SDoWhile (SWhile (XId "true", SEmpty), XId "true");
-	  SExpr C_Untyped.Embedded.(
+	  SExpr CLang.Embedded.(
 	    let x = var "x" and y = var "y" and z = var "z" in
 	    XStmtExpr [SExpr (cast int x * (y land ref y) + (x + sref y "blah" + sderef x "yeah"));
 		       SExpr (idx x y);
@@ -74,7 +74,7 @@ let _ =
 	  )
 	]
       ]);
-      pp_stmt C_Untyped.Embedded.(block [
+      pp_stmt CLang.Embedded.(block [
 	decl int "x" (intlit 0);
 	for_ever [
 	  expr (call "printf" [strlit "Hello world\n"]);

@@ -1,5 +1,5 @@
-open C_UntypedAST
-open C_Untyped
+open CAST
+open CLang
 
 type pp = Format.formatter -> unit
 

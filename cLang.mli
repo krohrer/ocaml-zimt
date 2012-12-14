@@ -1,12 +1,12 @@
 type rank = int
 type associativity = [`L2R|`R2L]
 
-type x = C_UntypedAST.x
-type t = C_UntypedAST.t
-type s = C_UntypedAST.s
-type lit = C_UntypedAST.lit
-type ident = C_UntypedAST.ident
-type field = C_UntypedAST.field
+type x = CAST.x
+type t = CAST.t
+type s = CAST.s
+type lit = CAST.lit
+type ident = CAST.ident
+type field = CAST.field
 
 module Type :
   sig

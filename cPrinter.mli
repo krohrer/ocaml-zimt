@@ -32,7 +32,7 @@ val pp_hvbox : ind:int -> pp -> pp
 
 (* The interesting stuff *)
 
-val pp_type : ?partial:pp -> C_UntypedAST.t -> pp
-val pp_decl : C_UntypedAST.t -> C_UntypedAST.ident -> C_UntypedAST.x option -> pp
-val pp_expr : C_UntypedAST.x -> pp 
-val pp_stmt : C_UntypedAST.s -> pp
+val pp_type : ?partial:pp -> CAST.t -> pp
+val pp_decl : CAST.t -> CAST.ident -> CAST.x option -> pp
+val pp_expr : CAST.x -> pp 
+val pp_stmt : CAST.s -> pp

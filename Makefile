@@ -8,6 +8,10 @@ all: run
 run: $(PROG).native
 	./$(PROG).native
 
+test: test.ml
+	$(OCAMLBUILD) test.byte
+	./test.byte
+
 $(PROG).native: *.ml *.mli
 	$(OCAMLBUILD) $@
 
