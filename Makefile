@@ -1,8 +1,18 @@
-.PHONY: clean all run clobber dump
+.PHONY: all run clean clobber
 
-all:
-	ocamlbuild c_Test.native
-	./c_Test.native
+OCAMLBUILD=ocamlbuild -use-ocamlfind
+PROG=test
+
+all: run
+
+run: $(PROG).native
+	./$(PROG).native
+
+$(PROG).native: *.ml *.mli
+	$(OCAMLBUILD) $@
+
+$(PROG).byte: *.ml *.mli
+	$(OCAMLBUILD) $@
 
 #all:test.opt objc.top foreign.top foreign.opt cLang.opt cLang.top
 
@@ -80,4 +90,4 @@ clean:
 
 clobber: clean
 	rm -f *~ *.annot *.native *.byte
-	rm -rf _build
+	$(OCAMLBUILD) -clean
