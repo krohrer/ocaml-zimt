@@ -1,24 +1,60 @@
 (** Type witnesses / phantom types for builtin types *)
 
-(** Builtin composite types *)
-type 'a ptr'
-
-type 'a struct'
-type ('a,'b) field
-
-type string'
-
 (* C Language description hoisted into OCaml (with some new
 constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
 (** Type of expressions *)
 type 'a t =
-  | TVoid : unit t
-  | TInt : int t
-  | TBool : bool t
-  | TString : string t
-  | TFun : ('r x,'b) fn -> ('r x,'b) fn t
+  | TPtr	: 'a ptr -> 'a ptr t
+  | TStruct	: 'a struct' -> 'a struct' t
+  | TEnum	: 'a enum -> 'a enum t
+  | TPrim	: 'a prim -> 'a t
+  | TFun	: ('r,'a) fn -> ('r,'a) fn t
+    
+and 'a ptr =
+  | PHeap		: 'a	-> 'a ptr
+  | PStatic		: 'a	-> 'a ptr
+
+and 'a struct' =
+  | SZero		: 'a					-> 'a struct'
+  | SPlusField		: 'a struct' * ('b t * ident)		-> 'a struct'
+  | SPlusBits		: 'a struct' * (int t * ident * int)	-> 'a struct'
+  | SPlusPadding	: 'a struct' * (int t * int)		-> 'a struct'
+
+and 'a enum =
+  | EZero	: 'a				-> 'a enum
+  | EPlus	: 'a enum * (ident * int lit)	-> 'a enum
+
+(* Arrays, pointers, structs *)
+and ('a,'b) field =
+  | FDeref	: 'a ptr -> ('a ptr, 'a) field
+  | FSubsript	: 'a ptr * int x -> ('a ptr, 'a) field
+  | FNamed	: 'a t * 'b t * ident -> ('a, 'b) field
+
+(* Primitive types *)
+and _ prim =
+  | Unit	: unit prim
+  | Bool	: bool prim
+  | Int		: int prim
+  | Nativeint	: nativeint prim
+  | Int32	: int32 prim
+  | Int64	: int64 prim
+  | Float	: float prim
+  | String	: string prim
+
+(** Function signature *)
+and (_,_) fn =
+  | FLam0	: 'r t				-> ('r x,'r x) fn
+  | FLam1	: 'a t * ident * ('r x,'b) fn	-> ('r x,'a x -> 'b) fn
+
+(* Literals *)
+and _ lit = 
+  | LitQuote	: 'a t * string	-> 'a lit
+  | LitBool	: bool		-> bool lit
+  | LitInt	: int		-> int lit
+  | LitFloat	: float		-> float lit
+  | LitString	: string	-> string lit
 
 (** Identifiers *)
 and ident = string
@@ -46,39 +82,21 @@ and _ x =
   (* TOOD : Add looping construct *)
 
 
-(** Function signature *)
-and (_,_) fn =
-  | FLam0	: 'r t				-> ('r x,'r x) fn
-  | FLam1	: 'a t * ident * ('r x,'b) fn	-> ('r x,'a x -> 'b) fn
-
-
-(** Literals *)
-and _ lit = 
-  | LTrue	: bool lit
-  | LFalse	: bool lit
-  | LInt	: int		-> int lit
-  | LString	: string	-> string lit
-
-
 (** Unary operators *)
 and (_,_) op1 =
   | O1Arith	: 'a arith1		-> ('a,'a) op1
   | O1Bit	: [`Not]		-> (int,int) op1
   | O1Logic	: [`Not]		-> (bool,bool) op1
-  | O1Cast	: 'a t			-> ('a,'b) op1
-  | O1PGet	: 			   ('a ptr','a) op1
   | O1SGet	: ('a,'b) field		-> ('a    ,'b) op1
-
 
 (** Binary operators *)
 and (_,_,_) op2 =
   | O2Arith	: 'a arith2			-> ('a,'a,'a) op2
-  | O2PArith	: [`Add|`Sub]			-> ('a ptr',int,'a ptr') op2
+  | O2PArith	: [`Add|`Sub]			-> ('a ptr,int,'a ptr) op2
   | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ('a,'a,'a) op2
   | O2Logic	: [`And|`Or]			-> (bool,bool,bool) op2
   | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> (int,int,int) op2
-  | O2PSet	: 				   ('a ptr','a,'a) op2
-  | O2SSet	: ('a,'b) field			-> ('a struct','a,'a) op2
+  | O2SSet	: ('a,'b) field			-> ('a,'b,'b) op2
 
 
 (** Unary arithmetic op *)

@@ -86,3 +86,29 @@ and mkcall1 : type a r s. (r x,s) fn -> (r x, a x -> s) fn x -> (a x -> s) =
   fun fs fx -> 
     fun x -> mkcall fs (XApp1 (fx, x))
 *)
+
+module type D =
+  sig
+    type t
+    val name : string
+  end
+
+let newtype : string -> (module D) = fun name -> let module D = struct type t let name = name end in (module D)
+
+module D1 =
+  struct
+    include (val newtype "HELLO")
+  end
+
+module D2 =
+  struct
+    include (val newtype "BAR")
+  end
+
+let _ = D1.x = D2.x
+
+module M =
+struct
+  type t = private int
+  let x : t = 0
+end
