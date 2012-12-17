@@ -5,3 +5,4 @@
 *.o
 *.opt
 *.top
+_build/
