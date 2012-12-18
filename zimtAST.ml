@@ -10,7 +10,7 @@ type 'a t =
   | TStruct	: 'a struct'	-> 'a struct' t
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
-  | TFun	: ('r,'a) fn	-> ('r,'a) fn t
+  | TFn		: ('r,'a) fn	-> ('r,'a) fn t
     
 and 'a ptr =
   | PHeap		: 'a	-> 'a ptr
@@ -125,3 +125,92 @@ and _ arith2 =
   | A2Mul	: int arith2
   | A2Div	: int arith2
   | A2Mod	: int arith2
+
+
+type defvalue =
+  | DefConst	: 'a lit		-> defvalue
+  | DefFn	: ('r x,'s) fn * 'r x	-> defvalue
+  | DefEx	: ('r,'s) fn		-> defvalue
+
+type deftype =
+  | DefType	: 'a t			-> deftype
+
+(* DEFINE MODULES *)
+module type ENV =
+  sig
+    type t
+    val add : ident -> t -> unit
+    val lookup : ident -> t option
+  end
+
+(* NAMED MODULE *)
+module type NAMED =
+  sig
+    val name' : string
+  end
+
+(* CONCRETE TYPE *)
+module type TYPE =
+  sig
+    include NAMED
+
+    type w
+    val t' : w t
+  end
+
+(* CONCRETE ENUM *)
+module type ENUM =
+  sig
+    type e
+    include TYPE with type w = e enum
+
+    val case'	: ident -> int lit -> w x
+  end
+
+(* CONCRETE STRUCT *)
+module type STRUCT =
+  sig
+    type s
+    include TYPE with type w = s struct'
+
+    val field'	: 'a t -> ident -> (w,'a) field
+    val bits'	: int t -> ident -> int -> (w,int) field
+    val pad'	: int t -> int -> unit
+  end
+
+(* FUNCTION TYPE *)
+module type FN =
+  sig
+    (** EDSL for function signatures
+
+	e.g. (arg int "a" ^^ arg bool "b" ^^ arg unit) *)
+
+    val (^^) : ('a -> 'b) -> 'a -> 'b
+    val ret : 'r t -> ('r x,'r x) fn
+    val varargs : ident -> ('r x,'r x) fn -> ('r x,varargs->'r x) fn
+    val arg : 'a t -> ident -> ('r x,'b) fn -> ('r x,'a x->'b) fn
+
+    (** Helpers *)
+    val bind : ('r x,'s) fn -> 's -> 'r x
+    val mkcall : ('r x,'s) fn -> ('r x,'s) fn x -> 's
+  end
+
+(* MODULE TYPE *)
+module type MODULE =
+  sig
+    include NAMED
+
+    val enum : ident -> (module ENUM)
+    val struct' : ident -> (module STRUCT)
+
+    val defun : ident -> ('r x,'s) fn -> 's -> 's
+    val extern : ident -> ('r x,'s) fn -> 's
+  end
+
+(* MODULE DESCRIPTION *)
+module type MODULE_DESC =
+  sig
+    include NAMED
+
+    val requires : (module MODULE) list
+  end

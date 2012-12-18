@@ -1,10 +1,15 @@
-.PHONY: all run test clean clobber
+.PHONY: all top run test clean clobber
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PROG=zimtCorelib
+PROG=zimt
 TEST=test
+TOP=zimt
 
 all: run
+
+top: *.ml *.mli
+	$(OCAMLBUILD) $(TOP).top
+	./$(TOP).top -I _build
 
 test: *.ml *.mli
 	$(OCAMLBUILD) $(TEST).byte
