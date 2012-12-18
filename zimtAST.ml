@@ -6,11 +6,11 @@ safety. (why write a typechecker when you can use OCaml's?) *)
 
 (** Type of expressions *)
 type 'a t =
-  | TPtr	: 'a ptr -> 'a ptr t
-  | TStruct	: 'a struct' -> 'a struct' t
-  | TEnum	: 'a enum -> 'a enum t
-  | TPrim	: 'a prim -> 'a t
-  | TFun	: ('r,'a) fn -> ('r,'a) fn t
+  | TPtr	: 'a ptr	-> 'a ptr t
+  | TStruct	: 'a struct'	-> 'a struct' t
+  | TEnum	: 'a enum	-> 'a enum t
+  | TPrim	: 'a prim	-> 'a t
+  | TFun	: ('r,'a) fn	-> ('r,'a) fn t
     
 and 'a ptr =
   | PHeap		: 'a	-> 'a ptr
@@ -18,19 +18,19 @@ and 'a ptr =
 
 and 'a struct' =
   | SZero		: 'a					-> 'a struct'
-  | SPlusField		: 'a struct' * ('b t * ident)		-> 'a struct'
-  | SPlusBits		: 'a struct' * (int t * ident * int)	-> 'a struct'
-  | SPlusPadding	: 'a struct' * (int t * int)		-> 'a struct'
+  | SPlusField		: 'a struct' * ('b t*ident)		-> 'a struct'
+  | SPlusBits		: 'a struct' * (int t*ident*int)	-> 'a struct'
+  | SPlusPadding	: 'a struct' * (int t*int)		-> 'a struct'
 
 and 'a enum =
   | EZero	: 'a				-> 'a enum
-  | EPlus	: 'a enum * (ident * int lit)	-> 'a enum
+  | EPlus	: 'a enum * (ident*int lit)	-> 'a enum
 
 (* Arrays, pointers, structs *)
 and ('a,'b) field =
-  | FDeref	: 'a ptr -> ('a ptr, 'a) field
-  | FSubsript	: 'a ptr * int x -> ('a ptr, 'a) field
-  | FNamed	: 'a t * 'b t * ident -> ('a, 'b) field
+  | FDeref	: 'a ptr		-> ('a ptr, 'a) field
+  | FSubsript	: 'a ptr * int x	-> ('a ptr, 'a) field
+  | FNamed	: 'a t * 'b t * ident	-> ('a, 'b) field
 
 (* Primitive types *)
 and _ prim =
@@ -45,8 +45,17 @@ and _ prim =
 
 (** Function signature *)
 and (_,_) fn =
+  (* Base case *)
   | FLam0	: 'r t				-> ('r x,'r x) fn
-  | FLam1	: 'a t * ident * ('r x,'b) fn	-> ('r x,'a x -> 'b) fn
+  (* Variable arguments can only be at the last position *)
+  | FLamV	: ident * ('r x,'r x) fn	-> ('r x,varargs->'r x) fn
+  (* One dditional argument *)
+  | FLam1	: 'a t * ident * ('r x,'b) fn	-> ('r x,'a x->'b) fn
+
+(** Variadic function arguments *)
+and varargs =
+  | VZero	: varargs
+  | VPlus	: 'a x * varargs	-> varargs
 
 (* Literals *)
 and _ lit = 
@@ -66,21 +75,22 @@ and _ x =
   (** Identifiers *)
   | XId		: 'a t * ident				-> 'a x
   (** New bindings *)
-  | XLet	: 'a t * ident * 'a x * ('a x -> 'b x)	-> 'b x
+  | XLet	: 'a t * ident * 'a x * ('a x->'b x)	-> 'b x
   (** Function application, base case *)
   | XApp0	: ('r x,'r x) fn x			-> 'r x
+  (** Function application, variadic *)
+  | XAppV	: ('r x,varargs->'r x) fn x * varargs	-> ('r x,'r x) fn x
   (** Function application, recursive case *)
-  | XApp1	: ('r x,'a x -> 'b) fn x * 'a x		-> ('r x,'b) fn x
+  | XApp1	: ('r x,'a x->'b) fn x * 'a x		-> ('r x,'b) fn x
   (** Unary operators *)
   | XOp1	: ('a,'b) op1 * 'a x			-> 'b x
   (** Binary operators *)
   | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x		-> 'c x
   (** Conditional expression (why if if you can have cond?) *)
-  | XCond	: (bool x * 'a x) list * 'a x		-> 'a x
+  | XCond	: (bool x*'a x) list * 'a x		-> 'a x
   (** Explicity sequencing of expressions *)
   | XDo		: unit x list * 'a x			-> 'a x
   (* TOOD : Add looping construct *)
-
 
 (** Unary operators *)
 and (_,_) op1 =

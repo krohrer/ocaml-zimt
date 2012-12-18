@@ -84,10 +84,8 @@ module type MODULE_DESC =
   sig
     include NAMED
 
-    type module' = (module MODULE)
-    val requires : module' list
+    val requires : (module MODULE) list
   end
 
 (* DEFINE NEW MODULE *)
 module DefModule (D : MODULE_DESC) : MODULE
-

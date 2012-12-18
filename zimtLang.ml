@@ -28,11 +28,13 @@ struct
   let rec mkcall : type s r. (r,s) fn -> (r,s) fn x -> s = fun fs fx ->
     match fs with
     | FLam0 t -> XApp0 fx
+    | FLamV (_,fs') -> fun va -> mkcall fs' (XAppV (fx, va))
     | FLam1 (_,_,fs') -> fun x -> mkcall fs' (XApp1 (fx, x))
       
   let rec bind : type s r. (r,s) fn -> s -> r = fun fs f -> 
     match fs with
     | FLam0 _ -> f
+    | FLamV (n,fs') -> let va = VZero in bind fs' (f va)
     | FLam1 (t,n,fs') -> let x = XId (t,n) in bind fs' (f x)
 end
 
@@ -102,8 +104,7 @@ module type MODULE_DESC =
   sig
     include NAMED
 
-    type module' = (module MODULE)
-    val requires : module' list
+    val requires : (module MODULE) list
   end
 
 (* Implementation *)

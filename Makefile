@@ -1,7 +1,7 @@
 .PHONY: all run test clean clobber
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PROG=zimt
+PROG=zimtCorelib
 TEST=test
 
 all: run
