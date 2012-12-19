@@ -1,5 +1,5 @@
 open Zimt
-open ZimtLang
+open ZimtModule
 open ZimtStruct
 open ZimtEnv
 open ZimtEnum

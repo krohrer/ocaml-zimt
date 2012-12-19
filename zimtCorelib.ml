@@ -1,6 +1,6 @@
-include (val ZimtLang.module' "ZimtCore")
+include (val ZimtModule.module' "ZimtCore")
 
-open ZimtLang
+open ZimtModule
 open Zimt
 
 let string = TPrim String
