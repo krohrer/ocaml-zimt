@@ -1,4 +1,4 @@
-open ZimtAST
+open Zimt
 
 (* Exceptional conditions *)
 module Conditions =
@@ -9,7 +9,7 @@ module Conditions =
 
 (* Environments *)
 module HeaderSet = Set.Make(struct
-  type t = ZimtAST.header
+  type t = Zimt.header
   let compare h1 h2 = compare h1 h2
 end)
 

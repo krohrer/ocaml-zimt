@@ -1,4 +1,4 @@
-open ZimtAST
+open Zimt
 
 module type ARGS =
   sig

@@ -1,4 +1,4 @@
-open ZimtAST
+open Zimt
 
 (* Function signature DSL and helpers *)
 (* module Fn = *)

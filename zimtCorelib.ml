@@ -1,7 +1,7 @@
 include (val ZimtLang.module' "ZimtCore")
 
 open ZimtLang
-open ZimtAST
+open Zimt
 
 let string = TPrim String
 let int = TPrim Int

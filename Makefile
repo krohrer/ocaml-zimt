@@ -1,7 +1,7 @@
 .PHONY: all top run test clean clobber
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PROG=zimt
+PROG=zimt_test
 TEST=test
 TOP=zimt
 

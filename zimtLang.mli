@@ -1,1 +1,1 @@
-val module' : ZimtAST.ident -> (module ZimtAST.MODULE)
+val module' : Zimt.ident -> (module Zimt.MODULE)

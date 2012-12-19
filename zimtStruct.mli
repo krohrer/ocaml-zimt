@@ -1,2 +1,2 @@
-val make : ZimtAST.mutenv -> ZimtAST.ident -> (module ZimtAST.STRUCT)
+val make : Zimt.mutenv -> Zimt.ident -> (module Zimt.STRUCT)
 

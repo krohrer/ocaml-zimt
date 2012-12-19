@@ -1,1 +1,1 @@
-val make : ZimtAST.ident -> ZimtAST.mutenv
+val make : Zimt.ident -> Zimt.mutenv
