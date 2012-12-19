@@ -7,16 +7,16 @@ TOP=zimt
 
 all: run
 
-top: *.ml *.mli
+top:
 	$(OCAMLBUILD) $(TOP).top
 	./$(TOP).top -I _build
 
-test: *.ml *.mli
+test:
 	$(OCAMLBUILD) $(TEST).byte
 	./$(TEST).byte
 
 run: $(PROG).native
-	./$(PROG).native
+	./$^
 
 $(PROG).native: *.ml *.mli
 	$(OCAMLBUILD) $@

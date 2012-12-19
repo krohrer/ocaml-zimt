@@ -4,5 +4,5 @@ open ZimtStruct
 open ZimtEnv
 open ZimtEnum
 open ZimtCorelib
-open ZimtTypeFold
-open ZimtExprFold
+open ZimtType
+open ZimtExpr
