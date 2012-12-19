@@ -4,6 +4,7 @@
 constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
+
 (** Identifiers *)
 type ident = string
 type filename = string
@@ -45,7 +46,7 @@ and 'a t =
   | TStruct	: 'a struct'	-> 'a struct' t
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
-  | TFn		: ('r,'a) fn	-> ('r,'a) fn t
+  | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
    
 and 'a ptr =
   | PHeap		: 'a t	-> 'a ptr
@@ -89,7 +90,7 @@ and (_,_) fn =
 
 (** Variadic function arguments *)
 and varargs =
-  | VZero	: varargs
+  | VZero	: 			   varargs
   | VPlus	: 'a x * varargs	-> varargs
 
 (* Literals *)
