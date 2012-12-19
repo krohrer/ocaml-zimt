@@ -1,5 +1,4 @@
 open C
-open CLang
 
 type pp = Format.formatter -> unit
 
@@ -168,7 +167,7 @@ let rec pp_decl t name xopt =
     match xopt with
     | None	-> pp_empty 
     | Some x	->
-      pp_string " =" +++ pp_spc +++ pp_subexpr `R Expr.assign_precedence x
+      pp_string " =" +++ pp_spc +++ pp_subexpr `R CExpr.assign_precedence x
   in
   ppd +++ ppinit
 
@@ -185,10 +184,10 @@ and pp_expr x =
   | XLit l			-> pp_literal l
   | XId n			-> pp_string n
   | XCall (f,args)		-> pp_call f args
-  | XOp1 (op,a)			-> pp_op1 (Expr.precedence x) op a
-  | XOp2 (op,a,b)		-> pp_op2 (Expr.precedence x) op a b
+  | XOp1 (op,a)			-> pp_op1 (CExpr.precedence x) op a
+  | XOp2 (op,a,b)		-> pp_op2 (CExpr.precedence x) op a b
   | XStmtExpr stmts		-> pp_stmt_expr stmts
-  | XIIf (p,t,f)		-> pp_inline_if (Expr.precedence x) p t f
+  | XIIf (p,t,f)		-> pp_inline_if (CExpr.precedence x) p t f
   | XInit is			-> pp_initializer is
 
 and pp_literal = function
@@ -205,8 +204,8 @@ and pp_literal = function
   | LFloat64 f	-> pp_format "%.18g" f
 
 and pp_comma_separated_expr x =
-  let rx = Expr.precedence x in
-  pp_paren_expr ~cond:(rx >= Expr.comma_precedence) x
+  let rx = CExpr.precedence x in
+  pp_paren_expr ~cond:(rx >= CExpr.comma_precedence) x
 
 and pp_comma_separated_expr_list xs =
   pp_list ~elem:pp_comma_separated_expr ~sep:pp_comma xs
@@ -216,20 +215,20 @@ and pp_arglist args =
   pp_parenthesize (pp_hvbox ~ind:0 pp_args)
 
 and pp_subexpr placement rparent x =
-  let rx = Expr.precedence x in
+  let rx = CExpr.precedence x in
   if rx < rparent then
     pp_expr x
   else if rx > rparent then
     pp_paren_expr x
   else
-    let assoc = Expr.associativity rx in
+    let assoc = CExpr.associativity rx in
     match placement, assoc with
     | `L, `R2L -> pp_paren_expr x
     | `R, `L2R -> pp_paren_expr x
     | _, _ -> pp_expr x
 
 and pp_call f args =
-  pp_subexpr `L Expr.call_precedence f +++ pp_arglist args
+  pp_subexpr `L CExpr.call_precedence f +++ pp_arglist args
 
 and pp_prefix r ops x =
   pp_string ops +++ pp_subexpr `R r x
@@ -302,9 +301,9 @@ and pp_stmt_expr stmts =
   pp_box ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_brk 1 ~-3))
 
 and pp_inline_if r pred bt bf =
-  let pp_pred	= pp_paren_expr ~cond:(r < Expr.precedence pred) pred
-  and pp_true	= pp_paren_expr ~cond:(r < Expr.precedence bt  ) bt
-  and pp_false	= pp_paren_expr ~cond:(r < Expr.precedence bf  ) bf in
+  let pp_pred	= pp_paren_expr ~cond:(r < CExpr.precedence pred) pred
+  and pp_true	= pp_paren_expr ~cond:(r < CExpr.precedence bt  ) bt
+  and pp_false	= pp_paren_expr ~cond:(r < CExpr.precedence bf  ) bf in
   pp_box ~ind:0 (pp_pred
 		 +++ pp_spc +++ pp_string "? " +++ pp_true
 		 +++ pp_spc +++ pp_string ": " +++ pp_false)

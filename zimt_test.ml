@@ -8,4 +8,7 @@ open ZimtType
 open ZimtExpr
 
 open C
-open CLang
+open CExpr
+open CEmbedded
+open CPrinter
+open CPrinter_test

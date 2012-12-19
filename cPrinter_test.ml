@@ -60,13 +60,13 @@ let _ =
 		SBlock [
 		  SIf (XQuote "i", SBreak, SContinue)]);
 	  SWhile (
-	    CLang.Embedded.(
+	    CEmbedded.(
 	      let x = var "x" and y = var "y" in
 	      XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
 			 SExpr (XQuote "sadfasdf")]),
 	    SEmpty);
 	  SDoWhile (SWhile (XId "true", SEmpty), XId "true");
-	  SExpr CLang.Embedded.(
+	  SExpr CEmbedded.(
 	    let x = var "x" and y = var "y" and z = var "z" in
 	    XStmtExpr [SExpr (cast int x * (y land ref y) + (x + sref y "blah" + sderef x "yeah"));
 		       SExpr (idx x y);
@@ -74,7 +74,7 @@ let _ =
 	  )
 	]
       ]);
-      pp_stmt CLang.Embedded.(block [
+      pp_stmt CEmbedded.(block [
 	decl int "x" (intlit 0);
 	for_ever [
 	  expr (call "printf" [strlit "Hello world\n"]);
