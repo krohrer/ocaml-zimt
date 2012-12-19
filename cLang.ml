@@ -1,7 +1,7 @@
 type rank = int
 type associativity = [`L2R|`R2L]
 
-include CAST
+include C
 
 module Type =
   struct
@@ -9,9 +9,9 @@ module Type =
 
 module Expr =
   struct
-    type t = CAST.x
+    type t = C.x
 
-    open CAST
+    open C
     
     (* http://en.wikipedia.org/wiki/Operators_in_C_and_C%2B%2B#Operator_precedence *)
 
@@ -93,7 +93,7 @@ module Stmt =
 
 module Embedded =
   struct
-    open CAST
+    open C
 
     (* Expressions *)
     let var n		= XId n

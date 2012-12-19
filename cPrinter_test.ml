@@ -1,4 +1,4 @@
-open CAST
+open C
 open CPrinter
 
 let int		= TPrim ([],PInt (`default,`int))

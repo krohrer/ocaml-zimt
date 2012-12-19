@@ -1,12 +1,12 @@
 type rank = int
 type associativity = [`L2R|`R2L]
 
-type x = CAST.x
-type t = CAST.t
-type s = CAST.s
-type lit = CAST.lit
-type ident = CAST.ident
-type field = CAST.field
+type x = C.x
+type t = C.t
+type s = C.s
+type lit = C.lit
+type ident = C.ident
+type field = C.field
 
 module Type :
   sig

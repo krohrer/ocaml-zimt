@@ -1,4 +1,4 @@
-open CAST
+open C
 open CLang
 
 type pp = Format.formatter -> unit

@@ -7,5 +7,5 @@ open ZimtCorelib
 open ZimtType
 open ZimtExpr
 
-open CAST
+open C
 open CLang
