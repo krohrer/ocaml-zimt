@@ -112,3 +112,62 @@ struct
   type t = private int
   let x : t = 0
 end
+
+module type T = sig type t end
+module type F = functor (T:T) -> T
+
+type header = string
+type ident = string
+
+class type ['d] env =
+object('a)
+  method requires : 'd env list
+  method includes : header list
+
+  method add : ident -> 'd -> unit
+  method lookup : ident -> 'd option
+end
+
+class type env' = [int] env
+
+let x : env' = object
+  method add _ _ = ()
+  method includes = []
+  method requires = []
+  method lookup _ = None
+end;;
+
+let _ = x#lookup
+
+class type a =
+object
+  method foo : int
+end
+
+class type b =
+object
+  inherit a
+end
+
+module rec A :
+  sig
+    type t = B of B.t
+  end
+  = A
+and B :
+  sig
+    type t = A of A.t
+  end
+  = B
+
+module type M =
+sig
+  type t = (module T)
+end
+
+module rec M : sig end = 
+  struct
+    module M = M
+  end
+
+kclmodule 
