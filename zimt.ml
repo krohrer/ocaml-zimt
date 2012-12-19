@@ -8,9 +8,7 @@ safety. (why write a typechecker when you can use OCaml's?) *)
 (** Identifiers *)
 type ident = string
 type filename = string
-type header =
-  | IncludeSys of filename
-  | IncludeUsr of filename
+type header = [ `Sys of filename | `Usr of filename ] 
 
 (** Environment *)
 class type ['v,'t] environment =
@@ -22,7 +20,15 @@ object
 
   method lookup_value : ident -> 'v option
   method lookup_type : ident -> 't option
+end
 
+class type ['v,'t] mutable_environment =
+object
+  inherit ['v,'t] environment
+  method add_include : header -> unit
+
+  method add_value : ident -> 'v -> unit
+  method add_type : ident -> 't -> unit
 end
 
 (** Definitions *)
@@ -35,6 +41,7 @@ and deftype =
   | Type	: 'a t			-> deftype
 
 and env = (defvalue, deftype) environment
+and mutenv = (defvalue, deftype) mutable_environment
 
 and q_ident = env * ident
 
@@ -159,17 +166,6 @@ and _ arith2 =
   | A2Div	: int arith2
   | A2Mod	: int arith2
 
-(* Mutable environments *)
-class type mutenv =
-object
-  inherit [defvalue, deftype] environment
-
-  method add_include : header -> unit
-
-  method add_value : ident -> defvalue -> unit
-  method add_type : ident -> deftype -> unit
-end
-
 (* NAMED MODULE *)
 module type NAMED =
   sig
@@ -227,9 +223,6 @@ module type MODULE =
   sig
     val name'		: ident
     val environment'	: mutenv
-
-    (** Include header files *)
-    val include' : header -> unit
 
     (** Define composite types *)
     val enum'	: ident -> (module ENUM)

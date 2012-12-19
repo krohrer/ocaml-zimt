@@ -6,3 +6,6 @@ open ZimtEnum
 open ZimtCorelib
 open ZimtType
 open ZimtExpr
+
+open CAST
+open CLang

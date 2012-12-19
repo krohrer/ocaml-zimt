@@ -1,4 +1,11 @@
-include (val ZimtModule.module' "ZimtCore")
+include ZimtModule.Make(struct
+  let name = "ZimtCore"
+  let includes = [
+    `Sys "stdlib.h";
+    `Sys "stdint.h";
+    `Sys "opengl/opengl.h"
+  ]
+end)
 
 open ZimtModule
 open Zimt

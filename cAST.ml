@@ -5,6 +5,16 @@ type t =
   | TPtr		of type_qual list * t
   | TFunc		of func_t
   | TArr		of arr_t
+
+  | TStruct		of ident
+  | TUnion		of ident
+  | TEnum		of ident
+  | TTypedef		of ident * t
+
+  | TStructDef		of ident option * struct_t
+  | TUnionDef		of ident option * union_t
+  | TEnumDef		of ident option * enum_t
+
 and prim_t =
   | PBool
   | PInt		of int_t
@@ -27,14 +37,19 @@ and arity		= [`variadic | `fixed]
 and arr_t		= t * array_sizes
 and array_sizes		= int list
 
+and struct_t		= ident * field_decl list
+and union_t		= ident * field_decl list
 and field_decl = 
   | FField		of t * ident
   | FBitField		of t * ident * int
   | FBitPadding		of int_t * int
 
-and enumerator		= ident * x option
+and enum_t		= enum_decl list
+and enum_decl		= ident * lit option
+
 and declaration		= storage_class * t * ident
 and storage_class	= [`extern | `static | `auto | `register]
+
 and field		= ident
 
 and x =
