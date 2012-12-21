@@ -1,15 +1,13 @@
 type t =
   | TVoid
-  | TPrim		of type_qual list * prim_t
-  | TRef		of type_qual list * ref_t
+  | TBool		of type_qual list
+  | TInt		of type_qual list * sign_spec * int_t
+  | TReal		of type_qual list * real_t
   | TPtr		of type_qual list * t
+  | TNamed		of type_qual list * named_t
+
   | TFunc		of func_t
   | TArr		of arr_t
-
-  | TStruct		of ident
-  | TUnion		of ident
-  | TEnum		of ident
-  | TTypedef		of ident * t
 
   | TStructDef		of ident option * struct_t
   | TUnionDef		of ident option * union_t
@@ -17,38 +15,64 @@ type t =
 
 and prim_t =
   | PBool
-  | PInt		of int_t
+  | PInt		of sign_spec * int_t
   | PReal		of real_t
 
-and type_qual		= [`const | `restrict | `volatile]
+and type_qual =
+  | Const
+  | Restrict
+  | Volatile
+
 and ident		= string
 
-and int_t		= sign_spec * [`char | `short | `int | `long | `longlong]
-and sign_spec		= [`unsigned | `signed | `default]
+and sign_spec =
+  | Signed
+  | Unsigned
+  | DefaultSign
 
-and real_t		= [`float | `double | `longdouble ]
+and int_t = 
+  | Char
+  | Short
+  | Int
+  | Long
+  | LongLong
 
-and ref_t		= [`struct' | `union | `enum | `typedef] * ident
+and real_t =
+  | Float
+  | Double
+  | LongDouble
+
+and named_t		=
+  | NamedStruct		of ident
+  | NamedUnion		of ident
+  | NamedEnum		of ident
+  | Typedef		of ident
 
 and func_t		= t * arg list * arity
 and arg			= t
-and arity		= [`variadic | `fixed]
+and arity		=
+  | Variadic
+  | Fixed
 
 and arr_t		= t * array_sizes
 and array_sizes		= int list
 
-and struct_t		= ident * field_decl list
-and union_t		= ident * field_decl list
+and struct_t		= field_decl list
+and union_t		= field_decl list
 and field_decl = 
-  | FField		of t * ident
-  | FBitField		of t * ident * int
-  | FBitPadding		of int_t * int
+  | Field		of t * ident
+  | BitsField		of t * ident * int
+  | BitsPadding		of t * int
 
 and enum_t		= enum_decl list
-and enum_decl		= ident * lit option
+and enum_decl		= ident * x option
 
 and declaration		= storage_class * t * ident
-and storage_class	= [`extern | `static | `auto | `register]
+and storage_class	=
+  | Extern
+  | Static
+  | Auto
+  | Register
 
 and field		= ident
 
@@ -59,28 +83,28 @@ and x =
   | XCall		of x * x list
   | XOp1		of op1 * x
   | XOp2		of op2 * x * x
-  | XStmtExpr		of s list
+  | XStmtExpr		of code list
   | XIIf		of x * x * x
   | XInit		of init list
 
 and init =		x
 
-and s =
-  | SEmpty
-  | SExpr		of x
-  | SSeq		of s list
-  | SBlock		of s list
-  | SDecl		of decl
-  | SSwitch		of x * s
-  | SLabeled		of label * s
-  | SGoto		of ident
-  | SFor		of s_for * s
-  | SWhile		of x * s
-  | SDoWhile		of s * x
-  | SIf			of x * s * s
-  | SBreak	
-  | SContinue
-  | SReturn		of x
+and code =
+  | CEmpty
+  | CExpr		of x
+  | CSeq		of code list
+  | CBlock		of code list
+  | CDecl		of decl
+  | CSwitch		of x * code
+  | CLabeled		of label * code
+  | CGoto		of ident
+  | CFor		of s_for * code
+  | CWhile		of x * code
+  | CDoWhile		of code * x
+  | CIf			of x * code * code
+  | CBreak	
+  | CContinue
+  | CReturn		of x
 
 and decl = t * ident * x option
 and s_for = [`none | `decl of decl | `expr of x] * x option * x option
@@ -94,23 +118,23 @@ and label =
 and tlunit = decl list
 
 and op1 =
-  | Op1Arith		of [`Neg|`PreInc|`PreDec|`PostInc|`PostDec]
-  | Op1Bit		of [`Not]
-  | Op1Logic		of [`Not]
-  | Op1Cast		of t
-  | Op1Deref
-  | Op1StructDeref	of field
-  | Op1Ref
-  | Op1StructRef	of field
+  | O1Arith		of [`Neg|`PreInc|`PreDec|`PostInc|`PostDec]
+  | O1Bit		of [`Not]
+  | O1Logic		of [`Not]
+  | O1Cast		of t
+  | O1Deref
+  | O1StructDeref	of field
+  | O1Ref
+  | O1StructRef	of field
 
 and op2 =
-  | Op2Assign
-  | Op2Subscript
-  | Op2Arith		of [`Add|`Sub|`Mul|`Div|`Mod]
-  | Op2Comp		of [`Eq|`NE|`Gt|`Lt|`GE|`LE]
-  | Op2Logic		of [`And|`Or]
-  | Op2Bit		of [`And|`Or|`Xor|`ShiftL|`ShiftR]
-  | Op2Comma
+  | O2Assign
+  | O2Subscript
+  | O2Arith		of [`Add|`Sub|`Mul|`Div|`Mod]
+  | O2Comp		of [`Eq|`NE|`Gt|`Lt|`GE|`LE]
+  | O2Logic		of [`And|`Or]
+  | O2Bit		of [`And|`Or|`Xor|`ShiftL|`ShiftR]
+  | O2Comma
 
 and lit = 
   | LInt		of int

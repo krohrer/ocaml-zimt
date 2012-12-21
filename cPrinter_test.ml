@@ -1,23 +1,24 @@
 open C
+open PrettyPrinter
 open CPrinter
 
-let int		= TPrim ([],PInt (`default,`int))
+let int		= TInt ([],DefaultSign,Int)
 let void	= TVoid
-let vptr	= TPtr ([`const], TVoid)
-let fptr	= TPtr ([`const], TFunc (void, [void], `fixed))
+let vptr	= TPtr ([Const], TVoid)
+let fptr	= TPtr ([Const], TFunc (void, [void], Fixed))
 let fpa		= TArr (fptr, [-1])
-let mfp f	= TPtr ([`const], TFunc (void, [void; void], `fixed))
+let mfp f	= TPtr ([Const], TFunc (void, [void; void], Fixed))
 
-let int = TPrim ([],PInt (`default,`int))
-let void = TVoid
 let ptr t = TPtr ([], t)
-let func t args = TFunc (t, args, `fixed) 
+let func t args = TFunc (t, args, Fixed) 
 let arr t sizes = TArr (t, sizes)
-let add_const qs = if List.mem `const qs then qs else `const :: qs
+let add_const qs = if List.mem Const qs then qs else Const :: qs
 let const = function
-  | TPrim (qs,p)	-> TPrim (add_const qs,p)
-  | TRef (qs,r)		-> TRef (add_const qs,r)
+  | TBool qs		-> TBool (add_const qs)
+  | TInt (qs,s,i)	-> TInt (add_const qs,s,i)
+  | TReal (qs,r)	-> TReal (add_const qs,r)
   | TPtr (qs,p)		-> TPtr (add_const qs,p)
+  | TNamed (qs,n)	-> TNamed (add_const qs,n)
   | x			-> x
 
 let ($) f x = f x
@@ -37,44 +38,44 @@ let _ =
       decl "h" $ arr (arr (ptr (ptr (func void [ptr void; const (ptr (func void [ptr void; ptr (const int)]))]))) [1]) [2];
       decl "i" $ arr (arr int [1;2]) [3];
       decl "j" $ func void [int; int; ptr void; arr (const int) [5;4]];
-      pp_stmt (SBlock [
-	SDecl (fptr, "f", None);
-	SBlock [
-	  SExpr (XIIf (XQuote "X",
+      pp_code (CBlock [
+	CDecl (fptr, "f", None);
+	CBlock [
+	  CExpr (XIIf (XQuote "X",
 		       XLit (LInt 1),
 		       XLit (LStr "hello")));
-	  SSwitch (XQuote "Y", SBlock [
-	    SLabeled (CaseConst (LInt 1), SBlock [
-	      SExpr (XQuote "CAMLparam1(X)");
-	      SBreak;
+	  CSwitch (XQuote "Y", CBlock [
+	    CLabeled (CaseConst (LInt 1), CBlock [
+	      CExpr (XQuote "CAMLparam1(X)");
+	      CBreak;
 	    ]);
-	    SLabeled (CaseDefault, SReturn (XId "Y"))]);
-	  SIf (XId "true", SBlock [], SEmpty);
-	  SIf (XId "false", SBlock [], SBlock []);
-	  SLabeled (Label "l1", SLabeled (Label "l2", SExpr (XQuote "Hello")));
-	  SGoto "l1";
-	  SFor ((`none, None, None), SEmpty);
-	  SFor ((`decl (int, "i", Some (XLit (LInt 1))),
-		 Some (XOp2 (Op2Comp `Lt, XId "i", XLit (LInt 0))),
-		 Some (XOp1 (Op1Arith `PreInc, XId "i"))),
-		SBlock [
-		  SIf (XQuote "i", SBreak, SContinue)]);
-	  SWhile (
+	    CLabeled (CaseDefault, CReturn (XId "Y"))]);
+	  CIf (XId "true", CBlock [], CEmpty);
+	  CIf (XId "false", CBlock [], CBlock []);
+	  CLabeled (Label "l1", CLabeled (Label "l2", CExpr (XQuote "Hello")));
+	  CGoto "l1";
+	  CFor ((`none, None, None), CEmpty);
+	  CFor ((`decl (int, "i", Some (XLit (LInt 1))),
+		 Some (XOp2 (O2Comp `Lt, XId "i", XLit (LInt 0))),
+		 Some (XOp1 (O1Arith `PreInc, XId "i"))),
+		CBlock [
+		  CIf (XQuote "i", CBreak, CContinue)]);
+	  CWhile (
 	    CEmbedded.(
 	      let x = var "x" and y = var "y" in
-	      XStmtExpr [SExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
-			 SExpr (XQuote "sadfasdf")]),
-	    SEmpty);
-	  SDoWhile (SWhile (XId "true", SEmpty), XId "true");
-	  SExpr CEmbedded.(
+	      XStmtExpr [CExpr (cast int x + y + ref y + (x + sref y "blah" + sderef x "yeah"));
+			 CExpr (XQuote "sadfasdf")]),
+	    CEmpty);
+	  CDoWhile (CWhile (XId "true", CEmpty), XId "true");
+	  CExpr CEmbedded.(
 	    let x = var "x" and y = var "y" and z = var "z" in
-	    XStmtExpr [SExpr (cast int x * (y land ref y) + (x + sref y "blah" + sderef x "yeah"));
-		       SExpr (idx x y);
-		       SExpr (call "printf" [XLit (LStr "%d, %f"); XOp2 (Op2Comma, x, y); y; XIIf (x, y, z)])]
+	    XStmtExpr [CExpr (cast int x * (y land ref y) + (x + sref y "blah" + sderef x "yeah"));
+		       CExpr (idx x y);
+		       CExpr (call "printf" [XLit (LStr "%d, %f"); XOp2 (O2Comma, x, y); y; XIIf (x, y, z)])]
 	  )
 	]
       ]);
-      pp_stmt CEmbedded.(block [
+      pp_code CEmbedded.(block [
 	decl int "x" (intlit 0);
 	for_ever [
 	  expr (call "printf" [strlit "Hello world\n"]);

@@ -39,39 +39,39 @@ and lit_precedence = function
       (* The rest is atomic *)
   | _				-> 0
 and op1_precedence = function
-  | Op1Arith `PostInc
-  | Op1Arith `PostDec
-  | Op1StructDeref _
-  | Op1StructRef _		-> 2
-  | Op1Arith `Neg
-  | Op1Arith `PreInc
-  | Op1Arith `PreDec
-  | Op1Bit `Not
-  | Op1Logic `Not
-  | Op1Cast _
-  | Op1Deref
-  | Op1Ref			-> 3
+  | O1Arith `PostInc
+  | O1Arith `PostDec
+  | O1StructDeref _
+  | O1StructRef _		-> 2
+  | O1Arith `Neg
+  | O1Arith `PreInc
+  | O1Arith `PreDec
+  | O1Bit `Not
+  | O1Logic `Not
+  | O1Cast _
+  | O1Deref
+  | O1Ref			-> 3
 and op2_precedence = function
-  | Op2Subscript		-> 2
-  | Op2Arith `Mul
-  | Op2Arith `Div
-  | Op2Arith `Mod		-> 5
-  | Op2Arith `Add
-  | Op2Arith `Sub		-> 6
-  | Op2Bit `ShiftL
-  | Op2Bit `ShiftR		-> 7
-  | Op2Comp `Gt
-  | Op2Comp `Lt
-  | Op2Comp `GE
-  | Op2Comp `LE			-> 8
-  | Op2Comp `Eq
-  | Op2Comp `NE			-> 9
-  | Op2Bit `And			-> 10
-  | Op2Bit `Xor			-> 11
-  | Op2Bit `Or			-> 12
-  | Op2Logic `And		-> 13
-  | Op2Logic `Or		-> 14
-  | Op2Assign			-> assign_precedence
-  | Op2Comma			-> comma_precedence
+  | O2Subscript			-> 2
+  | O2Arith `Mul
+  | O2Arith `Div
+  | O2Arith `Mod		-> 5
+  | O2Arith `Add
+  | O2Arith `Sub		-> 6
+  | O2Bit `ShiftL
+  | O2Bit `ShiftR		-> 7
+  | O2Comp `Gt
+  | O2Comp `Lt
+  | O2Comp `GE
+  | O2Comp `LE			-> 8
+  | O2Comp `Eq
+  | O2Comp `NE			-> 9
+  | O2Bit `And			-> 10
+  | O2Bit `Xor			-> 11
+  | O2Bit `Or			-> 12
+  | O2Logic `And		-> 13
+  | O2Logic `Or			-> 14
+  | O2Assign			-> assign_precedence
+  | O2Comma			-> comma_precedence
 and assign_precedence		=  15
 and comma_precedence		=  17

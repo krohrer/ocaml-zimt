@@ -1,11 +1,13 @@
-.PHONY: all top run test clean clobber
+.PHONY: default all top run test clean clobber
 
 OCAMLBUILD=ocamlbuild -use-ocamlfind
-PROG=zimt_test
+PROG=zimt
 TEST=test
 TOP=zimt
 
-all: run
+default: test
+
+all: top test run
 
 top:
 	$(OCAMLBUILD) $(TOP).top

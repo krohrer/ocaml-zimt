@@ -1,6 +1,6 @@
 type x = C.x
 type t = C.t
-type s = C.s
+type code = C.code
 type lit = C.lit
 type ident = C.ident
 type field = C.field
@@ -55,24 +55,24 @@ val intlit	: int -> x
 val strlit	: string -> x
 
     (* Statements *)
-val block	: s list -> s
+val block	: code list -> code
 
-val expr	: x -> s
-val decl	: t -> ident -> x -> s
+val expr	: x -> code
+val decl	: t -> ident -> x -> code
 
-val switch	: x -> s list -> s
-val case	: ident -> s list -> s
-val lcase	: lit -> s list -> s
-val default	: s list -> s
+val switch	: x -> code list -> code
+val case	: ident -> code list -> code
+val lcase	: lit -> code list -> code
+val default	: code list -> code
 
-val for_ever	: s list -> s
-val for'	: t -> ident -> x -> x -> x -> s list -> s
-val while'	: x -> s list -> s
-val do_while	: s list -> x -> s
-val if'		: x -> s list -> s list -> s
+val for_ever	: code list -> code
+val for'	: t -> ident -> x -> x -> x -> code list -> code
+val while'	: x -> code list -> code
+val do_while	: code list -> x -> code
+val if'		: x -> code list -> code list -> code
 
-val return	: x -> s
-val break 	: s
-val continue 	: s
-val goto	: ident -> s
-val label	: ident -> s
+val return	: x -> code
+val break 	: code
+val continue 	: code
+val goto	: ident -> code
+val label	: ident -> code
