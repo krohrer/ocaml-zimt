@@ -1,4 +1,4 @@
-type t =
+type t			=
   | TVoid
   | TBool		of type_qual list
   | TInt		of type_qual list * sign_spec * int_t
@@ -9,35 +9,35 @@ type t =
   | TFunc		of func_t
   | TArr		of arr_t
 
-  | TStructDef		of ident option * struct_t
-  | TUnionDef		of ident option * union_t
-  | TEnumDef		of ident option * enum_t
+  | TStruct		of ident option * struct_t
+  | TUnion		of ident option * union_t
+  | TEnum		of ident option * enum_t
 
-and prim_t =
+and prim_t		=
   | PBool
   | PInt		of sign_spec * int_t
   | PReal		of real_t
 
-and type_qual =
+and type_qual		=
   | Const
   | Restrict
   | Volatile
 
 and ident		= string
 
-and sign_spec =
+and sign_spec		=
   | Signed
   | Unsigned
   | DefaultSign
 
-and int_t = 
+and int_t		= 
   | Char
   | Short
   | Int
   | Long
   | LongLong
 
-and real_t =
+and real_t		=
   | Float
   | Double
   | LongDouble
@@ -48,8 +48,8 @@ and named_t		=
   | NamedEnum		of ident
   | Typedef		of ident
 
-and func_t		= t * arg list * arity
-and arg			= t
+and func_t		= t * func_arg list *arity
+and func_arg		= t * ident option
 and arity		=
   | Variadic
   | Fixed
@@ -59,7 +59,7 @@ and array_sizes		= int list
 
 and struct_t		= field_decl list
 and union_t		= field_decl list
-and field_decl = 
+and field_decl		= 
   | Field		of t * ident
   | BitsField		of t * ident * int
   | BitsPadding		of t * int
@@ -67,16 +67,20 @@ and field_decl =
 and enum_t		= enum_decl list
 and enum_decl		= ident * x option
 
-and declaration		= storage_class * t * ident
+and declaration		= storage_class option * t * ident
 and storage_class	=
   | Extern
   | Static
   | Auto
   | Register
 
+and definition		=
+  | DefValue		of declaration * x
+  | DefFunc		of declaration * code
+
 and field		= ident
 
-and x =
+and x			=
   | XQuote		of string
   | XLit		of lit
   | XId			of ident
@@ -87,9 +91,9 @@ and x =
   | XIIf		of x * x * x
   | XInit		of init list
 
-and init =		x
+and init		= x
 
-and code =
+and code		=
   | CEmpty
   | CExpr		of x
   | CSeq		of code list
@@ -106,18 +110,18 @@ and code =
   | CContinue
   | CReturn		of x
 
-and decl = t * ident * x option
-and s_for = [`none | `decl of decl | `expr of x] * x option * x option
+and decl		= t * ident * x option
+and s_for		= [`none | `decl of decl | `expr of x] * x option * x option
 
-and label =
+and label		=
   | CaseConst		of lit
   | CaseNamed		of ident
   | CaseDefault
   | Label		of ident
 
-and tlunit = decl list
+and tlunit		= decl list
 
-and op1 =
+and op1			=
   | O1Arith		of [`Neg|`PreInc|`PreDec|`PostInc|`PostDec]
   | O1Bit		of [`Not]
   | O1Logic		of [`Not]
@@ -127,7 +131,7 @@ and op1 =
   | O1Ref
   | O1StructRef	of field
 
-and op2 =
+and op2			=
   | O2Assign
   | O2Subscript
   | O2Arith		of [`Add|`Sub|`Mul|`Div|`Mod]
@@ -136,7 +140,7 @@ and op2 =
   | O2Bit		of [`And|`Or|`Xor|`ShiftL|`ShiftR]
   | O2Comma
 
-and lit = 
+and lit			= 
   | LInt		of int
   | LInt32		of int32
   | LInt64		of int64

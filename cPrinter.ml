@@ -57,9 +57,9 @@ let rec pp_type ?(partial=pp_empty) = function
   | TInt (qs,s,it)	-> pp_type_int qs s it partial
   | TReal (qs,rt)	-> pp_type_real qs rt partial
   | TNamed (qs,nt)	-> pp_type_named qs nt partial
-  | TStructDef (no,sd)	-> pp_type_struct no sd partial
-  | TUnionDef (no,ud)	-> pp_type_union no ud partial
-  | TEnumDef (no,ed)	-> pp_type_enum no ed partial
+  | TStruct (no,sd)	-> pp_type_struct no sd partial
+  | TUnion (no,ud)	-> pp_type_union no ud partial
+  | TEnum (no,ed)	-> pp_type_enum no ed partial
   | TPtr (qs,t)		-> pp_type_ptr qs t partial
   | TFunc ft		-> pp_type_func ft partial
   | TArr at		-> pp_type_array at partial
@@ -140,8 +140,10 @@ and pp_type_ptr qs t partial =
 and pp_type_func (t,args,arity) partial =
   pp_type ~partial:(partial +++ pp_type_func_arg_list args arity) t
 
-and pp_type_func_arg t =
-  pp_box ~ind:2 (pp_type t)
+and pp_type_func_arg =
+  function
+  | t, Some n 	-> pp_box ~ind:2 (pp_decl t n None)
+  | t, None 	-> pp_box ~ind:2 (pp_type t)
 
 and pp_type_func_arg_list args arity =
   let pp_args = pp_list ~elem:pp_type_func_arg ~sep:pp_comma args in

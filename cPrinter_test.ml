@@ -5,9 +5,9 @@ open CPrinter
 let int		= TInt ([],DefaultSign,Int)
 let void	= TVoid
 let vptr	= TPtr ([Const], TVoid)
-let fptr	= TPtr ([Const], TFunc (void, [void], Fixed))
+let fptr	= TPtr ([Const], TFunc (void, [void, None], Fixed))
 let fpa		= TArr (fptr, [-1])
-let mfp f	= TPtr ([Const], TFunc (void, [void; void], Fixed))
+let mfp f	= TPtr ([Const], TFunc (f, [int, Some "a"; int, Some "b"], Fixed))
 
 let ptr t = TPtr ([], t)
 let func t args = TFunc (t, args, Fixed) 
@@ -34,10 +34,11 @@ let _ =
       decl "d" $ const (ptr int);
       decl "e" $ const (ptr (const int));
       decl "f" $ func (const int) [];
-      decl "g" $ func void [ptr void; ptr (const int)];
-      decl "h" $ arr (arr (ptr (ptr (func void [ptr void; const (ptr (func void [ptr void; ptr (const int)]))]))) [1]) [2];
+      decl "g" $ func void [ptr void, None; ptr (const int), None];
+      decl "h" $ arr (arr (ptr (ptr (func void [ptr void, None; const (ptr (func void [ptr void, None; ptr (const int), None])), None]))) [1]) [2];
       decl "i" $ arr (arr int [1;2]) [3];
-      decl "j" $ func void [int; int; ptr void; arr (const int) [5;4]];
+      decl "j" $ func void [int, None; int, None; ptr void, None; arr (const int) [5;4], None];
+      decl "k" $ mfp fptr;
       pp_code (CBlock [
 	CDecl (fptr, "f", None);
 	CBlock [
