@@ -2,6 +2,9 @@ open Zimt
 
 class ['a] fold =
 object(self)
+  method fold_value : type b. b value -> 'a -> 'a = fun t a ->
+    self#fold t.value_type a
+
   method fold_forward : type b. b t Lazy.t -> 'a -> 'a = fun (lazy t) a ->
     self#fold t a
 
@@ -34,6 +37,7 @@ object(self)
 
   method fold : type b. b t -> 'a -> 'a = fun t a ->
     match t with
+    | TValue vt		-> self#fold_value vt a
     | TForward lt	-> self#fold_forward lt a
     | TNamed (r,q)	-> self#fold_named (r,q) a
     | TPtr pt		-> self#fold_ptr pt a

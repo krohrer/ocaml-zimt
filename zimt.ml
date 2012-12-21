@@ -47,6 +47,7 @@ and q_ident = env * ident
 
 (** Type of expressions *)
 and 'a t =
+  | TValue	: 'a value	-> 'a value t
   | TForward	: 'a t Lazy.t	-> 'a t
   | TNamed	: 'a * q_ident	-> 'a t
   | TPtr	: 'a ptr	-> 'a ptr t
@@ -54,23 +55,29 @@ and 'a t =
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
   | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
+
+and 'a value = {
+  value_type	: 'a t;
+  value_box	: 'a x -> 'a value x;
+  value_unbox	: 'a value x -> 'a x
+}
    
-and 'a ptr =
+and _ ptr =
   | PHeap		: 'a t	-> 'a ptr
   | PStatic		: 'a t	-> 'a ptr
 
-and 'a struct' =
+and _ struct' =
   | SZero		: 'a					-> 'a struct'
   | SPlusField		: 'a struct' * ('b t*ident)		-> 'a struct'
   | SPlusBits		: 'a struct' * (int t*ident*int)	-> 'a struct'
   | SPlusPadding	: 'a struct' * (int t*int)		-> 'a struct'
 
-and 'a enum =
+and _ enum =
   | EZero	: 'a				-> 'a enum
   | EPlus	: 'a enum * (ident*int lit)	-> 'a enum
 
 (* Arrays, pointers, structs *)
-and ('a,'b) field =
+and (_,_) field =
   | FDeref	: 'a ptr		-> ('a ptr, 'a) field
   | FSubsript	: 'a ptr * int x	-> ('a ptr, 'a) field
   | FNamed	: 'a t * 'b t * ident	-> ('a, 'b) field
