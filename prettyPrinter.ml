@@ -17,6 +17,8 @@ let pp_format fmt =
 let pp_to_string f x ff = Format.pp_print_string ff (f x)
 let pp_nbsp ff = Format.pp_print_string ff " "
 
+let pp_comma = pp_string "," +++ pp_spc
+
 let pp_list ~elem ?(sep=pp_empty) list ff =
   let rec fold = function
     | []	-> ()
@@ -53,5 +55,5 @@ let pp_hvbox ~ind pp ff =
   Format.pp_close_box ff ()
 
 let pp_cut ff = Format.pp_print_cut ff ()
-let pp_brk nsp ind ff = Format.pp_print_break ff nsp ind
+let pp_brk ~spc ~ind ff = Format.pp_print_break ff spc ind
 

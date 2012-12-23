@@ -1,13 +1,15 @@
+type pp = PrettyPrinter.t
+
 open C
 open Printf
 open PrettyPrinter
 
 (* Generic------------------------------------------------------------------*)
 
+(* TODO : replace fixed indentation with customizable one *)
+
 let pp_ident n =
   pp_string n
-
-let pp_comma = pp_string "," +++ pp_spc
 
 (* Types -------------------------------------------------------------------*)
 
@@ -80,32 +82,30 @@ and pp_type_real qs rt partial =
 and pp_type_named qs nt partial =
   pp_type_quals `prefix qs +++ pp_to_string named_type_to_string nt +++ partial
 
-and pp_type_struct no sd partial =
+and pp_type_struct_or_union s no fs partial =
   let prefix =
     match no with
-    | None -> pp_string "struct "
-    | Some n -> pp_format "struct %s" n
+    | None -> pp_string s
+    | Some n -> pp_format "%s %s" s n
   in
-  prefix +++ pp_nbsp +++ pp_type_fields sd +++ partial
+  pp_hbox (prefix +++ pp_string " {")
+  +++ pp_list ~elem:pp_type_field fs
+  +++ pp_brk ~spc:1 ~ind:~-4
+  +++ pp_hbox (pp_string "}" +++ partial)
+
+and pp_type_struct no sd partial =
+  pp_type_struct_or_union "struct" no sd partial
 
 and pp_type_union no ud partial =
-  let prefix =
-    match no with
-    | None -> pp_string "union "
-    | Some n -> pp_format "union %s" n
-  in
-  prefix +++ pp_nbsp +++ pp_type_fields ud +++ partial
+  pp_type_struct_or_union "union" no ud partial
 
-and pp_type_fields fs =
-  let fields = 
-    pp_list ~elem:pp_type_field ~sep:pp_comma fs
+and pp_type_field f = 
+  let field = match f with
+    | Field (t,n)		-> pp_decl (None,t,n)
+    | BitsField (t,n,sz)	-> pp_decl (None,t,n) +++ pp_format " : %d" sz
+    | BitsPadding (t,sz)	-> pp_type t ~partial:(pp_format " : %d" sz)
   in
-  pp_bracket_curly (pp_spc +++ pp_vbox ~ind:0 fields +++ pp_spc)
-
-and pp_type_field = function
-  | Field (t,n)		-> pp_hbox (pp_decl t n None)
-  | BitsField (t,n,sz)	-> pp_hbox (pp_decl t n None +++ pp_format " : %d" sz)
-  | BitsPadding (t,sz)	-> pp_hbox (pp_type t ~partial:(pp_format " : %d" sz))
+  pp_spc +++ pp_hbox (field +++ pp_string ";")
 
 and pp_type_enum no ed partial =
   let prefix =
@@ -142,7 +142,7 @@ and pp_type_func (t,args,arity) partial =
 
 and pp_type_func_arg =
   function
-  | t, Some n 	-> pp_box ~ind:2 (pp_decl t n None)
+  | t, Some n 	-> pp_box ~ind:2 (pp_decl (None,t,n))
   | t, None 	-> pp_box ~ind:2 (pp_type t)
 
 and pp_type_func_arg_list args arity =
@@ -162,24 +162,54 @@ and pp_type_array (t,sizes) partial =
 and pp_type_array_size i =
   pp_bracket_square (if i < 0 then pp_empty else pp_int i)
 
-(* Expressions -------------------------------------------------------------*)
+(* Declarations & Definitions ----------------------------------------------*)
+(* These pretty printers are always boxed *)
 
-(* declarations are not strictly expressions, but hey. *)
-and pp_decl t name xopt =
-  let ppd = pp_type ~partial:(pp_spc +++ pp_string name) t 
-  and ppinit =
-    match xopt with
+and pp_decl (scopt,t,name) =
+  let decl = pp_type ~partial:(pp_spc +++ pp_string name) t 
+  and sc_prefix =
+    match scopt with
     | None	-> pp_empty 
-    | Some x	->
-      pp_string " =" +++ pp_spc +++ pp_subexpr `R CExpr.assign_precedence x
+    | Some sc	-> pp_to_string pp_storage_class_to_string sc +++ pp_spc
   in
-  ppd +++ ppinit
+  pp_hbox (sc_prefix +++ decl)
+
+and pp_storage_class_to_string = function
+  | Extern	-> "extern"
+  | Static	-> "static"
+  | Auto	-> "auto"
+  | Register	-> "register"
+
+and pp_defvar (d,x) =
+  let rhs =
+    pp_string " ="
+    +++ pp_spc
+    +++ pp_subexpr `R CExpr.assign_precedence x
+    +++ pp_string ";"
+  in
+  pp_hbox (pp_decl d +++ rhs)
+
+and pp_defunc (d,c) =
+  pp_vbox ~ind:4 (pp_hbox (pp_decl d)
+		  +++ pp_brk ~spc:1 ~ind:~-4
+		  +++ pp_string "{"
+		  +++ pp_code c
+		  +++ pp_brk ~spc:1 ~ind:~-4
+		  +++ pp_string "}")
+
+and pp_typedef (t,name) =
+  pp_hvbox ~ind:4 (pp_string "typedef"
+		   +++ pp_nbsp
+		   +++ pp_type ~partial:(pp_spc +++ pp_string name) t
+		   +++ pp_string ";")
+
+(* Expressions -------------------------------------------------------------*)
 
 and pp_paren_expr ?(cond=true) x =
   let ppe = pp_expr x in
   if cond then
-    pp_box ~ind:1 (pp_parenthesize ppe)
-  else 
+    pp_box ~ind:2 (pp_parenthesize ppe)
+  else
     ppe
 
 and pp_expr x =
@@ -198,6 +228,7 @@ and pp_expr_quote s =
   pp_string s
 
 and pp_literal = function
+  | LQuote q	-> pp_string q
   | LInt i	-> pp_format "%d" i
   | LInt32 i	-> pp_format "%ld" i
   | LInt64 i	-> pp_format "%LdLL" i
@@ -244,10 +275,10 @@ and pp_expr_postfix r x ops =
   pp_subexpr `L r x +++ pp_string ops
 
 and pp_expr_infix r x ops y =
-  let pp_left	= pp_subexpr `L r x
-  and pp_op	= pp_nbsp +++ pp_string ops +++ pp_spc
-  and pp_right	= pp_subexpr `R r y in
-  pp_left +++ pp_op +++ pp_right
+  let left	= pp_subexpr `L r x
+  and op	= pp_nbsp +++ pp_string ops +++ pp_spc
+  and right	= pp_subexpr `R r y in
+  left +++ op +++ right
 
 and pp_expr_cast r t x =
   pp_box ~ind:1 (pp_parenthesize (pp_type t)) +++ pp_subexpr `R r x
@@ -305,7 +336,7 @@ and pp_expr_op2 r op x y =
 
 and pp_expr_stmt_expr stmts =
   let pp_stmts = pp_list ~elem:pp_code stmts in
-  pp_box ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_brk 1 ~-3))
+  pp_box ~ind:3 (pp_bracket "({" "})" (pp_stmts +++ pp_brk ~spc:1 ~ind:~-3))
 
 and pp_expr_inline_if r pred bt bf =
   let pp_pred	= pp_paren_expr ~cond:(r < CExpr.precedence pred) pred
@@ -329,7 +360,7 @@ and pp_code = function
   | CExpr x		-> pp_code_expr x
   | CSeq sl		-> pp_seq (List.map pp_code sl)
   | CBlock _ as s	-> pp_code_block s
-  | CDecl (t,n,xopt)	-> pp_code_decl t n xopt
+  | CDef d		-> pp_code_def d
   | CSwitch (x,s)	-> pp_code_switch x s
   | CLabeled (l,s)	-> pp_code_labeled l +++ pp_code s
   | CGoto n		-> pp_code_goto n
@@ -340,6 +371,7 @@ and pp_code = function
   | CBreak		-> pp_code_break ()
   | CContinue		-> pp_code_continue ()
   | CReturn x		-> pp_code_return x
+  | CReturn0		-> pp_code_return0 ()
 
 and pp_code_empty =
   pp_empty
@@ -347,21 +379,23 @@ and pp_code_empty =
 (* As it stands, pp_bracket_stmt has the closing bracket \} always on
    a new line. *)
 and pp_code_block ?prefix ?postfix s =
-  let ppo = 
+  let prefix = 
     match prefix with
     | None		-> pp_string "{"
     | Some pp		-> pp_hbox (pp +++ pp_string " {")
-  and ppc =
+  and postfix =
     match postfix with
     | None		-> pp_string "}"
     | Some pp		-> pp_hbox (pp_string "} " +++ pp)
-  and ppb =
+  and body =
     match s with
     | CEmpty		-> pp_empty
     | CBlock sts	-> pp_list ~elem:pp_code sts
     | s			-> pp_code s
   in
-  pp_spc +++ pp_vbox ~ind:4 (ppo +++ ppb +++ pp_brk 0 ~-4 +++ ppc)
+  pp_spc +++ pp_vbox ~ind:4 (prefix
+			     +++ body
+			     +++ pp_brk ~spc:1 ~ind:~-4 +++ postfix)
 
 and pp_code_statement pp =
   pp_spc +++ pp_box ~ind:2 (pp +++ pp_string ";")
@@ -370,8 +404,8 @@ and pp_code_statement pp =
 and pp_code_expr x =
   pp_code_statement (pp_expr x);
 
-and pp_code_decl t name xopt =
-  pp_code_statement (pp_decl t name xopt)
+and pp_code_def dv =
+  pp_spc +++ pp_defvar dv
 
 
 and pp_code_labeled l =
@@ -382,7 +416,7 @@ and pp_code_labeled l =
     | CaseDefault	-> ~-4, pp_string "default"
     | Label n		-> ~-2, pp_string n
   in
-  pp_brk 1 ind +++ pp_lbl +++ pp_string ":"
+  pp_brk ~spc:1 ~ind +++ pp_lbl +++ pp_string ":"
 
 and pp_code_goto n =
   pp_code_statement (pp_string "goto " +++ pp_string n)
@@ -393,27 +427,27 @@ and pp_code_switch x s =
   pp_code_block ~prefix s
 
 and pp_code_for ipn s =
-  let pph = 
+  let header = 
     match ipn with
     | `none, None, None	-> pp_string ";;"
-    | init, pred, next	->
-      let ppinit =
-	match init with
-	| `none			-> pp_empty
-	| `decl (t, name, xopt)	-> pp_decl t name xopt
-	| `expr x		-> pp_expr x
-      and pppred = 
-	match pred with
+    | i, p, n	->
+      let init =
+	match i with
+	| `none			-> pp_string ";"
+	| `def dv		-> pp_defvar dv
+	| `expr x		-> pp_hbox (pp_expr x +++ pp_string ";")
+      and predicate = 
+	match p with
+	| None		-> pp_spc +++ pp_string ";"
+	| Some x	-> pp_spc +++ pp_expr x +++ pp_string ";"
+      and next =
+	match n with
 	| None		-> pp_spc
 	| Some x	-> pp_spc +++ pp_expr x
-      and ppnext =
-	match next with
-	| None		-> pp_spc
-	| Some x	-> pp_spc +++ pp_expr x
-      and ppsep = pp_string ";" in
-      ppinit +++ ppsep +++ pppred +++ ppsep +++ ppnext
+      in
+      init +++ predicate +++ next
   in
-  let prefix = pp_string "for (" +++ pp_hvbox ~ind:0 pph +++ pp_string ")" in
+  let prefix = pp_string "for (" +++ pp_hvbox ~ind:0 header +++ pp_string ")" in
   pp_code_block ~prefix s
 
 and pp_code_while x s =
@@ -422,7 +456,7 @@ and pp_code_while x s =
 
 and pp_code_do_while s x =
   let prefix = pp_string "do"
-  and postfix = pp_string "while " +++ pp_paren_expr x in
+  and postfix = pp_string "while " +++ pp_paren_expr x +++ pp_string ";" in
   pp_code_block ~prefix ~postfix s
 
 and pp_code_if xpred strue sfalse =
@@ -444,3 +478,6 @@ and pp_code_continue () =
 
 and pp_code_return x =
   pp_code_statement (pp_string "return " +++ pp_paren_expr x)
+
+and pp_code_return0 () =
+  pp_code_statement (pp_string "return")

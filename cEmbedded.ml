@@ -64,7 +64,7 @@ let strlit s		= XLit (LStr s)
 let block sl		= CBlock sl
 
 let expr x		= CExpr x
-let decl t n x		= CDecl (t, n, Some x)
+let def t n x		= CDef ((None,t,n), x)
 
 let switch x sl		= CSwitch (x, block sl)
 
@@ -74,7 +74,7 @@ let lcase l	sl	= CBlock (CLabeled (CaseConst l, CEmpty) :: sl)
 let default sl		= CBlock (CLabeled (CaseDefault, CEmpty) :: sl)
 
 let for_ever sl		= CFor ((`none, None, None), CBlock sl)
-let for' t n x c i sl	= CFor ((`decl (t, n, Some x),
+let for' t n x c i sl	= CFor ((`def ((None,t,n), x),
 				 Some c,
 				 Some i),
 				CBlock sl)

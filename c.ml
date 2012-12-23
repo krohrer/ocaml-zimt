@@ -1,3 +1,4 @@
+(* TODO : Rethink type qualifiers *)
 type t			=
   | TVoid
   | TBool		of type_qual list
@@ -48,7 +49,7 @@ and named_t		=
   | NamedEnum		of ident
   | Typedef		of ident
 
-and func_t		= t * func_arg list *arity
+and func_t		= t * func_arg list * arity
 and func_arg		= t * ident option
 and arity		=
   | Variadic
@@ -67,6 +68,7 @@ and field_decl		=
 and enum_t		= enum_decl list
 and enum_decl		= ident * x option
 
+
 and declaration		= storage_class option * t * ident
 and storage_class	=
   | Extern
@@ -74,9 +76,15 @@ and storage_class	=
   | Auto
   | Register
 
-and definition		=
-  | DefValue		of declaration * x
-  | DefFunc		of declaration * code
+
+and defval		=
+  | Defvar		of defvar
+  | Defunc		of defunc
+
+and typedef		= t * ident
+and defvar		= declaration * x
+and defunc		= declaration * code
+
 
 and field		= ident
 
@@ -98,7 +106,7 @@ and code		=
   | CExpr		of x
   | CSeq		of code list
   | CBlock		of code list
-  | CDecl		of decl
+  | CDef		of defvar
   | CSwitch		of x * code
   | CLabeled		of label * code
   | CGoto		of ident
@@ -109,17 +117,15 @@ and code		=
   | CBreak	
   | CContinue
   | CReturn		of x
+  | CReturn0
 
-and decl		= t * ident * x option
-and s_for		= [`none | `decl of decl | `expr of x] * x option * x option
+and s_for		= [`none | `def of defvar | `expr of x] * x option * x option
 
 and label		=
   | CaseConst		of lit
   | CaseNamed		of ident
   | CaseDefault
   | Label		of ident
-
-and tlunit		= decl list
 
 and op1			=
   | O1Arith		of [`Neg|`PreInc|`PreDec|`PostInc|`PostDec]
@@ -141,6 +147,7 @@ and op2			=
   | O2Comma
 
 and lit			= 
+  | LQuote		of string
   | LInt		of int
   | LInt32		of int32
   | LInt64		of int64

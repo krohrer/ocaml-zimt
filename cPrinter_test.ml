@@ -5,12 +5,18 @@ open CPrinter
 let int		= TInt ([],DefaultSign,Int)
 let void	= TVoid
 let vptr	= TPtr ([Const], TVoid)
+let func	= TFunc (void, [void, None], Fixed)
 let fptr	= TPtr ([Const], TFunc (void, [void, None], Fixed))
 let fpa		= TArr (fptr, [-1])
 let mfp f	= TPtr ([Const], TFunc (f, [int, Some "a"; int, Some "b"], Fixed))
+let s		= TStruct (None, [])
+let s2		= TStruct (Some "S2", [Field (fptr, "a");
+				       BitsField (int, "b", 4);
+				       BitsPadding (int,18);
+				       Field (s, "c")])
 
 let ptr t = TPtr ([], t)
-let func t args = TFunc (t, args, Fixed) 
+(*let func t args = TFunc (t, args, Fixed) *)
 let arr t sizes = TArr (t, sizes)
 let add_const qs = if List.mem Const qs then qs else Const :: qs
 let const = function
@@ -25,22 +31,22 @@ let ($) f x = f x
 let ( *** ) f x = f x
 
 let _ =
-  let decl n t = pp_hbox *** pp_decl t n None +++ pp_cut in
+  let pp_lines ls = pp_vbox ~ind:0 (pp_list ~elem:(fun l -> pp_hbox l +++ pp_spc) ls) in
   let pp = 
-    pp_vbox ~ind:0 *** pp_seq [
-      decl "a" $ void;
-      decl "b" $ int;
-      decl "c" $ ptr int;
-      decl "d" $ const (ptr int);
-      decl "e" $ const (ptr (const int));
-      decl "f" $ func (const int) [];
-      decl "g" $ func void [ptr void, None; ptr (const int), None];
-      decl "h" $ arr (arr (ptr (ptr (func void [ptr void, None; const (ptr (func void [ptr void, None; ptr (const int), None])), None]))) [1]) [2];
-      decl "i" $ arr (arr int [1;2]) [3];
-      decl "j" $ func void [int, None; int, None; ptr void, None; arr (const int) [5;4], None];
-      decl "k" $ mfp fptr;
-      pp_code (CBlock [
-	CDecl (fptr, "f", None);
+    pp_lines [
+      pp_typedef (int, "a");
+      pp_typedef (void, "a");
+      pp_typedef (vptr, "a");
+      pp_typedef (func, "a");
+      pp_typedef (fptr, "a");
+      pp_typedef (fpa, "a");
+      pp_typedef (s, "bas");
+      pp_typedef (s2, "s2");
+      pp_defvar ((None,func,"f1"), XLit (LQuote "NULL"));
+      pp_defunc ((None,func,"bar1"), CExpr (XLit (LQuote "NULL")));
+      pp_defvar ((None,func,"f2"), XLit (LQuote "NULL"));
+      pp_defunc ((None,TFunc (void, [void, Some "x"], Variadic),"bar2"), CSeq [
+	CDef ((None,fptr,"f"), XLit (LInt 0));
 	CBlock [
 	  CExpr (XIIf (XQuote "X",
 		       XLit (LInt 1),
@@ -55,8 +61,8 @@ let _ =
 	  CIf (XId "false", CBlock [], CBlock []);
 	  CLabeled (Label "l1", CLabeled (Label "l2", CExpr (XQuote "Hello")));
 	  CGoto "l1";
-	  CFor ((`none, None, None), CEmpty);
-	  CFor ((`decl (int, "i", Some (XLit (LInt 1))),
+	  CFor ((`def ((None,int,"x"),XLit (LInt 0)), None, None), CEmpty);
+	  CFor ((`def ((None,int,"i"), XLit (LInt 1)),
 		 Some (XOp2 (O2Comp `Lt, XId "i", XLit (LInt 0))),
 		 Some (XOp1 (O1Arith `PreInc, XId "i"))),
 		CBlock [
@@ -77,7 +83,6 @@ let _ =
 	]
       ]);
       pp_code CEmbedded.(block [
-	decl int "x" (intlit 0);
 	for_ever [
 	  expr (call "printf" [strlit "Hello world\n"]);
 	  expr (call "printf" [strlit "How are we today?\n"]);
@@ -88,5 +93,5 @@ let _ =
       ])
     ]
   in
-  Format.set_margin 40;
+  Format.set_margin 32;
   pp Format.std_formatter

@@ -18,7 +18,8 @@ val pp_format		: ('a, unit, string, t) format4 -> 'a
 val pp_spc		: t
 val pp_nbsp		: t
 val pp_cut		: t
-val pp_brk		: int -> int -> t
+val pp_brk		: spc:int -> ind:int -> t
+val pp_comma		: t
 val pp_list		: elem:('a -> t) -> ?sep:t -> 'a list -> t
 val pp_seq		: t list -> t
 val pp_bracket		: string -> string -> t -> t

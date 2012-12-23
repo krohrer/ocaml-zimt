@@ -75,3 +75,5 @@ and op2_precedence = function
   | O2Comma			-> comma_precedence
 and assign_precedence		=  15
 and comma_precedence		=  17
+
+let simplify x = x

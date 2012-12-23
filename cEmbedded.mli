@@ -58,7 +58,7 @@ val strlit	: string -> x
 val block	: code list -> code
 
 val expr	: x -> code
-val decl	: t -> ident -> x -> code
+val def		: t -> ident -> x -> code
 
 val switch	: x -> code list -> code
 val case	: ident -> code list -> code

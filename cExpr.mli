@@ -7,3 +7,5 @@ val associativity : rank ->  associativity
 val call_precedence	: rank
 val comma_precedence : rank
 val assign_precedence : rank
+
+val simplify : C.x -> C.x
