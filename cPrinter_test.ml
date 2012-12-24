@@ -93,5 +93,5 @@ let _ =
       ])
     ]
   in
-  Format.set_margin 32;
+  Format.set_margin 78;
   pp Format.std_formatter

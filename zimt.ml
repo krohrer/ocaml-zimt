@@ -4,6 +4,38 @@
 constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
+(** Basic types *)
+type unit' = unit
+type string' = string
+
+(* Scalar types *)
+type bool'	= [ `ZBool ]
+
+type int'	= [ `ZInt ]
+type int8'	= [ `ZInt8 ]
+type int16'	= [ `ZInt16 ]
+type int32'	= [ `ZInt32 ]
+type int64'	= [ `ZInt64 ]
+type intnat'	= [ `ZIntNat ]
+
+type uint'	= [ `ZUInt ]
+type uint8'	= [ `ZUInt8 ]
+type uint16'	= [ `ZUInt16 ]
+type uint32'	= [ `ZUInt32 ]
+type uint64'	= [ `ZUInt64 ]
+type uintnat'	= [ `ZUIntNat ]
+
+type natint'	= [ `ZNatInt ]
+type float32'	= [ `ZFloat32 ]
+type float64'	= [ `ZFloat64 ]
+
+(* Builtin type families *)
+type sints'	= [  int' |  int8' |  int16' |  int32' |  int64' | natint' ]
+type uints'	= [ uint' | uint8' | uint16' | uint32' | uint64' ]
+type floats'	= [ float32' | float64' ]
+type integers'	= [ sints' | uints' ]
+type numbers'	= [ integers' | floats' ]
+type scalar'	= [ numbers' | bool' ]
 
 (** Identifiers *)
 type ident = string
@@ -46,8 +78,8 @@ and mutenv = (defvalue, deftype) mutable_environment
 and q_ident = env * ident
 
 (** Type of expressions *)
-and 'a t =
-  | TValue	: 'a value	-> 'a value t
+and _ t =
+  | TCaml	: 'a camltype	-> 'a camlvalue t
   | TForward	: 'a t Lazy.t	-> 'a t
   | TNamed	: 'a * q_ident	-> 'a t
   | TPtr	: 'a ptr	-> 'a ptr t
@@ -56,12 +88,9 @@ and 'a t =
   | TPrim	: 'a prim	-> 'a t
   | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
 
-and 'a value = {
-  value_type	: 'a t;
-  value_box	: 'a x -> 'a value x;
-  value_unbox	: 'a value x -> 'a x
-}
-   
+and _ camlvalue
+and _ camltype
+
 and _ ptr =
   | PHeap		: 'a t	-> 'a ptr
   | PStatic		: 'a t	-> 'a ptr
@@ -84,14 +113,22 @@ and (_,_) field =
 
 (* Primitive types *)
 and _ prim =
-  | Unit	: unit prim
-  | Bool	: bool prim
-  | Int		: int prim
-  | Nativeint	: nativeint prim
-  | Int32	: int32 prim
-  | Int64	: int64 prim
-  | Float	: float prim
-  | String	: string prim
+  | ZUnit	: unit' prim
+  | ZBool	: bool' prim
+  | ZString	: string' prim
+
+  | ZInt8	: int8' prim
+  | ZInt16	: int16' prim
+  | ZInt32	: int32' prim
+  | ZInt64	: int64' prim
+
+  | ZUInt8	: uint8' prim
+  | ZUInt16	: uint16' prim
+  | ZUInt32	: uint32' prim
+  | ZUInt64	: uint64' prim
+
+  | ZInt	: int' prim
+  | ZUInt	: uint' prim
 
 (** Function signature *)
 and (_,_) fn =
@@ -108,15 +145,30 @@ and varargs =
   | VPlus	: 'a x * varargs	-> varargs
 
 (* Literals *)
-and _ lit = 
-  | LitQuote	: 'a t * string	-> 'a lit
-  | LitBool	: bool		-> bool lit
-  | LitInt	: int		-> int lit
-  | LitFloat	: float		-> float lit
-  | LitString	: string	-> string lit
+and _ lit =
+  | LitUnit	:		   unit' lit
+  | LitBool	: bool		-> bool' lit
+  | LitString	: string	-> string' lit
+
+  | LitInt8	: int		-> int8' lit
+  | LitInt16	: int		-> int16' lit
+  | LitInt32	: int32		-> int32' lit
+  | LitInt64	: int64		-> int64' lit
+  | LitIntNat	: nativeint	-> intnat' lit
+
+  | LitUInt8	: int		-> int8' lit
+  | LitUInt16	: int		-> int16' lit
+  | LitUInt32	: int32		-> int32' lit
+  | LitUInt64	: int64		-> int64' lit
+  | LitUIntNat	: nativeint	-> uintnat' lit
+
+  | LitInt	: int		-> int' lit
+  | LitUInt	: int		-> uint' lit
 
 (** Expressions *)
 and _ x =
+  (** Quotes *)
+  | XQuote	: 'a t * string				-> 'a x
   (** Literals *)
   | XLit	: 'a lit				-> 'a x
   (** Identifiers *)
@@ -141,37 +193,41 @@ and _ x =
 
 (** Unary operators *)
 and (_,_) op1 =
-  | O1Arith	: 'a arith1		-> ('a,'a) op1
+  | O1Arith	: 'a op1arith		-> ('a,'a) op1
   | O1Bit	: [`Not]		-> (int,int) op1
   | O1Logic	: [`Not]		-> (bool,bool) op1
   | O1SGet	: ('a,'b) field		-> ('a    ,'b) op1
 
 (** Binary operators *)
 and (_,_,_) op2 =
-  | O2Arith	: 'a arith2			-> ('a,'a,'a) op2
-  | O2PArith	: [`Add|`Sub]			-> ('a ptr,int,'a ptr) op2
-  | O2Comp	: [`Eq|`NE|`Gt|`Lt|`GE|`LE]	-> ('a,'a,'a) op2
-  | O2Logic	: [`And|`Or]			-> (bool,bool,bool) op2
-  | O2Bit	: [`And|`Or|`Xor|`Shl|`Shr]	-> (int,int,int) op2
-  | O2SSet	: ('a,'b) field			-> ('a,'b,'b) op2
+  | O2Arith	: 'a op2arith	-> ('a,'a,'a) op2
+  | O2PArith	: op2parith	-> ('a ptr,integers','a ptr) op2
+  | O2Cmp	: op2cmp	-> (scalar',scalar',scalar') op2
+  | O2Logic	: op2logic	-> (bool',bool',bool') op2
+  | O2Bit	: op2bit	-> (integers',integers',integers') op2
+  | O2SSet	: ('a,'b) field	-> ('a,'b,'b) op2
 
+and op2parith	= [`Add|`Sub]
+and op2cmp	= [`Eq|`NE|`Gt|`Lt|`GE|`LE]
+and op2logic	= [`And|`Or]
+and op2bit	= [`And|`Or|`Xor|`Shl|`Shr]
 
 (** Unary arithmetic op *)
-and _ arith1 =
-  | A1Neg	: int arith1
-  | A1PreInc	: int arith1
-  | A1PreDec	: int arith1
-  | A1PostInc	: int arith1
-  | A1PostDec	: int arith1
+and _ op1arith =
+  | A1Neg	: numbers' op1arith
+  | A1PreInc	: integers' op1arith
+  | A1PreDec	: integers' op1arith
+  | A1PostInc	: integers' op1arith
+  | A1PostDec	: integers' op1arith
 
 
 (** Binary arithmetic op *)
-and _ arith2 =
-  | A2Add	: int arith2
-  | A2Sub	: int arith2
-  | A2Mul	: int arith2
-  | A2Div	: int arith2
-  | A2Mod	: int arith2
+and _ op2arith =
+  | A2Add	: numbers' op2arith
+  | A2Sub	: numbers' op2arith
+  | A2Mul	: numbers' op2arith
+  | A2Div	: numbers' op2arith
+  | A2Mod	: integers' op2arith
 
 (* NAMED MODULE *)
 module type NAMED =
@@ -185,7 +241,7 @@ module type TYPE =
     include NAMED
 
     type w
-    val t' : w t
+    val type' : w t
   end
 
 (* Enumeration mixin, iterative, uses incomplete type for type witness

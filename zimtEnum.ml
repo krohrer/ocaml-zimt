@@ -13,13 +13,13 @@ module Make (A : ARGS) : ENUM =
 
     let repr : 'a enum ref = ref (EZero ())
 
-    let t' = TForward (lazy (TEnum !repr))
+    let type' = TForward (lazy (TEnum !repr))
     let name' = A.name
 
     let case' n l =
       A.env#add_value n (ValConst l);
       repr := EPlus (!repr, (n,l));
-      XId (t', (A.env#env,n))
+      XId (type', (A.env#env,n))
   end
 
 let make env name = (module Make (struct

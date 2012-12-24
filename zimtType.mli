@@ -1,6 +1,6 @@
 class ['a] fold :
   object
-    method fold_value   : 'b Zimt.value			-> 'a -> 'a
+    method fold_caml	: 'b. 'b Zimt.camltype		-> 'a -> 'a
     method fold_forward : 'b. 'b Zimt.t Lazy.t		-> 'a -> 'a
     method fold_named	: 'b. 'b * Zimt.q_ident		-> 'a -> 'a
     method fold_ptr	: 'b. 'b Zimt.ptr		-> 'a -> 'a

@@ -43,12 +43,12 @@ module Make (A : ARGS) : MODULE =
 
     let enum' n =
       let module E = (val ZimtEnum.make environment' n) in
-      env#add_type n (Type E.t');
+      env#add_type n (Type E.type');
       (module E : ENUM)
 
     let struct' n = 
       let module S = (val ZimtStruct.make environment' n) in
-      env#add_type n (Type S.t');
+      env#add_type n (Type S.type');
       (module S : STRUCT)
 
     let defconst' n l =

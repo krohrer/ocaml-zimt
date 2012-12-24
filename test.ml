@@ -6,6 +6,7 @@ open ZimtEnum
 open ZimtCorelib
 open ZimtType
 open ZimtExpr
+open ZimtCaml
 
 open C
 open CExpr

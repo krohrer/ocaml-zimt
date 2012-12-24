@@ -170,4 +170,24 @@ module rec M : sig end =
     module M = M
   end
 
-kclmodule 
+type nums = [ `ints | `floats ]
+
+type _ t =
+  | A : ([< nums] as 'a) -> 'a t
+
+type _ x =
+  | X : 'a t * 'a -> 'a x
+
+let _ =
+  X (A `ints, `ints);;
+
+
+module type T = 
+sig
+  type s
+end
+
+module type M =
+sig
+  val make : 'a -> (module T with type s = 'a)
+end

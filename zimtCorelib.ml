@@ -8,11 +8,12 @@ include ZimtModule.Make(struct
 end)
 
 open ZimtModule
+open ZimtPrim
 open Zimt
 
-let string = TPrim String
-let int = TPrim Int
-let unit = TPrim Unit
+let string = TPrim ZString
+let int = TPrim ZInt
+let unit = TPrim ZUnit
 let stringL s = XLit (LitString s)
 
 let vararg = VZero
