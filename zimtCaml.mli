@@ -8,7 +8,7 @@ type void = Zimt.unit'
 type 'a struct' = 'a Zimt.struct'
 type 'a x = 'a Zimt.x
 type ('a,'b) field = ('a,'b) Zimt.field
-type 'a v = 'a Zimt.camlvalue
+type 'a v = 'a Caml.t
 type 'a ptr = 'a Zimt.ptr
 
 type exception'

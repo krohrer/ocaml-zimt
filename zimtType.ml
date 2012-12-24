@@ -2,7 +2,7 @@ open Zimt
 
 class ['a] fold =
 object(self)
-  method fold_caml : type b. b camltype -> 'a -> 'a = fun v a ->
+  method fold_caml : type b. b Caml.t -> 'a -> 'a = fun v a ->
     a
 
   method fold_forward : type b. b t Lazy.t -> 'a -> 'a = fun (lazy t) a ->

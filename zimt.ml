@@ -79,7 +79,7 @@ and q_ident = env * ident
 
 (** Type of expressions *)
 and _ t =
-  | TCaml	: 'a camltype	-> 'a camlvalue t
+  | TCaml	: 'a Caml.t	-> 'a Caml.t t
   | TForward	: 'a t Lazy.t	-> 'a t
   | TNamed	: 'a * q_ident	-> 'a t
   | TPtr	: 'a ptr	-> 'a ptr t
@@ -87,9 +87,6 @@ and _ t =
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
   | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
-
-and _ camlvalue
-and _ camltype
 
 and _ ptr =
   | PHeap		: 'a t	-> 'a ptr
@@ -113,22 +110,26 @@ and (_,_) field =
 
 (* Primitive types *)
 and _ prim =
-  | ZUnit	: unit' prim
-  | ZBool	: bool' prim
-  | ZString	: string' prim
+  | Unit	: unit' prim
+  | Bool	: bool' prim
+  | String	: string' prim
 
-  | ZInt8	: int8' prim
-  | ZInt16	: int16' prim
-  | ZInt32	: int32' prim
-  | ZInt64	: int64' prim
+  | Int		: int' prim
+  | Int8	: int8' prim
+  | Int16	: int16' prim
+  | Int32	: int32' prim
+  | Int64	: int64' prim
+  | IntNat	: intnat' prim
 
-  | ZUInt8	: uint8' prim
-  | ZUInt16	: uint16' prim
-  | ZUInt32	: uint32' prim
-  | ZUInt64	: uint64' prim
+  | UInt	: uint' prim
+  | UInt8	: uint8' prim
+  | UInt16	: uint16' prim
+  | UInt32	: uint32' prim
+  | UInt64	: uint64' prim
+  | UIntNat	: uintnat' prim
 
-  | ZInt	: int' prim
-  | ZUInt	: uint' prim
+  | Float32	: float32' prim
+  | Float64	: float64' prim
 
 (** Function signature *)
 and (_,_) fn =
