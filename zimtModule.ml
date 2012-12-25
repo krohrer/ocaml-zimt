@@ -43,29 +43,30 @@ module Make (A : ARGS) : MODULE =
 
     let enum' n =
       let module E = (val ZimtEnum.make environment' n) in
-      env#add_type n (Type E.type');
+      env#add_type n (DefType E.type');
       (module E : ENUM)
 
     let struct' n = 
       let module S = (val ZimtStruct.make environment' n) in
-      env#add_type n (Type S.type');
+      env#add_type n (DefType S.type');
       (module S : STRUCT)
 
-    let defconst' n l =
-      env#add_value n (ValConst l);
-      XLit l
+    let defvar' n t x =
+      let e = env#env in
+      env#add_value n (DefVar x);
+      XId (t,(e,n))
 
     let defun' n fs fimpl =
       let e = env#env in
       let k = Fn.mkcall fs (XId (TFn fs, (e,n))) in
       let impl = Fn.bind e fs fimpl in
-      env#add_value n (ValFn (fs, impl));
+      env#add_value n (DefFunc (fs, impl));
       k
 
     let extern' n fs =
       let e = env#env in
       let k = Fn.mkcall fs (XId (TFn fs, (e,n))) in
-      env#add_value n (ValEx fs);
+      env#add_value n (DefExt fs);
       k
   end
 

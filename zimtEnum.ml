@@ -17,7 +17,7 @@ module Make (A : ARGS) : ENUM =
     let name' = A.name
 
     let case' n l =
-      A.env#add_value n (ValConst l);
+      A.env#add_value n (DefVar (XLit l));
       repr := EPlus (!repr, (n,l));
       XId (type', (A.env#env,n))
   end

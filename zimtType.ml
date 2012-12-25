@@ -11,10 +11,8 @@ object(self)
   method fold_named : type b. b * q_ident -> 'a -> 'a = fun _ a ->
     a
 
-  method fold_ptr : type b. b ptr -> 'a -> 'a = fun pt a ->
-    match pt with
-    | PHeap t -> self#fold t a
-    | PStatic t -> self#fold t a
+  method fold_ptr : type b. b t -> 'a -> 'a = fun pt a ->
+    self#fold pt a
 
   method fold_struct : type b. b struct' -> 'a -> 'a = fun st a ->
     match st with

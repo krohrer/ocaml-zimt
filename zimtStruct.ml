@@ -18,13 +18,11 @@ module Make (A : ARGS) : STRUCT =
 
     let field' : 'a t -> ident -> (w,'a) field = fun ft fn ->
       let f = FNamed (type', ft, fn) in
-      A.env#add_type fn (Type ft);
       repr := SPlusField (!repr, (ft, fn));
       f
 	
     let bits' : int t -> ident -> int -> (w,'a) field = fun ft fn bc ->
       let f = FNamed (type', ft, fn) in
-      A.env#add_type fn (Type ft);
       repr := SPlusBits (!repr, (ft, fn, bc));
       f
 

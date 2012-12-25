@@ -25,13 +25,12 @@ type uint32'	= [ `ZUInt32 ]
 type uint64'	= [ `ZUInt64 ]
 type uintnat'	= [ `ZUIntNat ]
 
-type natint'	= [ `ZNatInt ]
 type float32'	= [ `ZFloat32 ]
 type float64'	= [ `ZFloat64 ]
 
 (* Builtin type families *)
-type sints'	= [  int' |  int8' |  int16' |  int32' |  int64' | natint' ]
-type uints'	= [ uint' | uint8' | uint16' | uint32' | uint64' ]
+type sints'	= [  int' |  int8' |  int16' |  int32' |  int64' | intnat'  ]
+type uints'	= [ uint' | uint8' | uint16' | uint32' | uint64' | uintnat' ]
 type floats'	= [ float32' | float64' ]
 type integers'	= [ sints' | uints' ]
 type numbers'	= [ integers' | floats' ]
@@ -65,12 +64,12 @@ end
 
 (** Definitions *)
 type defvalue =
-  | ValConst	: 'a lit		-> defvalue
-  | ValFn	: ('r x,'s) fn * 'r x	-> defvalue
-  | ValEx	: ('r,'s) fn		-> defvalue
+  | DefVar	: 'a x			-> defvalue
+  | DefFunc	: ('r x,'s) fn * 'r x	-> defvalue
+  | DefExt	: ('r,'s) fn		-> defvalue
 
 and deftype =
-  | Type	: 'a t			-> deftype
+  | DefType	: 'a t			-> deftype
 
 and env = (defvalue, deftype) environment
 and mutenv = (defvalue, deftype) mutable_environment
@@ -82,15 +81,13 @@ and _ t =
   | TCaml	: 'a Caml.t	-> 'a Caml.t t
   | TForward	: 'a t Lazy.t	-> 'a t
   | TNamed	: 'a * q_ident	-> 'a t
-  | TPtr	: 'a ptr	-> 'a ptr t
+  | TPtr	: 'a t		-> 'a ptr t
   | TStruct	: 'a struct'	-> 'a struct' t
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
   | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
 
-and _ ptr =
-  | PHeap		: 'a t	-> 'a ptr
-  | PStatic		: 'a t	-> 'a ptr
+and _ ptr
 
 and _ struct' =
   | SZero		: 'a					-> 'a struct'
@@ -304,7 +301,7 @@ module type MODULE =
       end
 
     (** Define values *)
-    val defconst'	: ident -> 'a lit -> 'a x
+    val defvar'		: ident -> 'a t -> 'a x -> 'a x
     val defun'		: ident -> ('r x,'s) fn -> 's -> 's
     val extern'		: ident -> ('r x,'s) fn -> 's
   end
