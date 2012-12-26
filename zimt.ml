@@ -65,8 +65,8 @@ end
 (** Definitions *)
 type defvalue =
   | DefVar	: 'a x			-> defvalue
-  | DefFunc	: ('r x,'s) fn * 'r x	-> defvalue
-  | DefExt	: ('r,'s) fn		-> defvalue
+  | DefFunc	: 's fn * 'r x		-> defvalue
+  | DefExt	: 's fn			-> defvalue
 
 and deftype =
   | DefType	: 'a t			-> deftype
@@ -85,7 +85,7 @@ and _ t =
   | TStruct	: 'a struct'	-> 'a struct' t
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
-  | TFn		: ('r x,'a) fn	-> ('r x,'a) fn t
+  | TFn		: 's fn		-> 's fn t
 
 and _ ptr
 
@@ -129,13 +129,13 @@ and _ prim =
   | Float64	: float64' prim
 
 (** Function signature *)
-and (_,_) fn =
+and _ fn =
   (* Base case *)
-  | FLam0	: 'r t				-> ('r x,'r x) fn
+  | FLam0	: 'r t				-> 'r x fn
   (* Variable arguments can only be at the last position *)
-  | FLamV	: ident * ('r x,'r x) fn	-> ('r x,varargs->'r x) fn
+  | FLamV	: ident * 'r x fn	-> (varargs->'r x) fn
   (* One dditional argument *)
-  | FLam1	: 'a t * ident * ('r x,'b) fn	-> ('r x,'a x->'b) fn
+  | FLam1	: 'a t * ident * 'b fn	-> ('a x->'b) fn
 
 (** Variadic function arguments *)
 and varargs =
@@ -174,11 +174,11 @@ and _ x =
   (** New bindings *)
   | XLet	: 'a t * q_ident * 'a x * ('a x->'b x)	-> 'b x
   (** Function application, base case *)
-  | XApp0	: ('r x,'r x) fn x			-> 'r x
+  | XApp0	: ('r x) fn x				-> 'r x
   (** Function application, variadic *)
-  | XAppV	: ('r x,varargs->'r x) fn x * varargs	-> ('r x,'r x) fn x
+  | XAppV	: (varargs->'r x) fn x * varargs	-> ('r x) fn x
   (** Function application, recursive case *)
-  | XApp1	: ('r x,'a x->'b) fn x * 'a x		-> ('r x,'b) fn x
+  | XApp1	: ('a x->'b) fn x * 'a x		-> ('b) fn x
   (** Unary operators *)
   | XOp1	: ('a,'b) op1 * 'a x			-> 'b x
   (** Binary operators *)
@@ -270,13 +270,13 @@ module type FN =
 
 	e.g. (arg int "a" ^^ arg bool "b" ^^ arg unit) *)
     val (^^) : ('a -> 'b) -> 'a -> 'b
-    val ret : 'r t -> ('r x,'r x) fn
-    val varargs : ident -> ('r x,'r x) fn -> ('r x,varargs->'r x) fn
-    val arg : 'a t -> ident -> ('r x,'b) fn -> ('r x,'a x->'b) fn
+    val ret : 'r t -> 'r x fn
+    val varargs : ident -> 'r x fn -> (varargs->'r x) fn
+    val arg : 'a t -> ident -> 'b fn -> ('a x->'b) fn
 
     (** Helpers *)
-    val bind : ('r x,'s) fn -> 's -> 'r x
-    val mkcall : ('r x,'s) fn -> ('r x,'s) fn x -> 's
+    val bind : 's fn -> 's -> defvalue
+    val mkcall : 's fn -> 's fn x -> 's
   end
 
 (* MODULE TYPE *)
@@ -295,13 +295,13 @@ module type MODULE =
     module Fn :
       sig
 	val (^^) : ('a -> 'b) -> 'a -> 'b
-	val ret : 'r t -> ('r x,'r x) fn
-	val varargs : ident -> ('r x,'r x) fn -> ('r x,varargs->'r x) fn
-	val arg : 'a t -> ident -> ('r x,'b) fn -> ('r x,'a x->'b) fn
+	val ret : 'r t -> 'r x fn
+	val varargs : ident -> 'r x fn -> (varargs->'r x) fn
+	val arg : 'a t -> ident -> 'b fn -> ('a x->'b) fn
       end
 
     (** Define values *)
     val defvar'		: ident -> 'a t -> 'a x -> 'a x
-    val defun'		: ident -> ('r x,'s) fn -> 's -> 's
-    val extern'		: ident -> ('r x,'s) fn -> 's
+    val defun'		: ident -> ('s) fn -> 's -> 's
+    val extern'		: ident -> ('s) fn -> 's
   end

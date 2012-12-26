@@ -27,7 +27,7 @@ object(self)
   method fold_prim : type b. b prim -> 'a -> 'a  = fun _ a ->
     a
 
-  method fold_fn : type r s. (r x,s) fn -> 'a -> 'a = fun s a ->
+  method fold_fn : type s. s fn -> 'a -> 'a = fun s a ->
     match s with
     | FLam0 t -> self#fold t a
     | FLamV (_,s) -> self#fold_fn s a
