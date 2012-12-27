@@ -14,7 +14,7 @@ include (ZimtModule.Make(struct
   ]
 end))
 
-type void = Zimt.unit'
+type void = Zimt.void'
 type 'a struct' = 'a Zimt.struct'
 type 'a x = 'a Zimt.x
 type ('a,'b) field = ('a,'b) Zimt.field

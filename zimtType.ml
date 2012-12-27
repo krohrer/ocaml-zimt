@@ -11,8 +11,11 @@ object(self)
   method fold_named : type b. b * q_ident -> 'a -> 'a = fun _ a ->
     a
 
-  method fold_ptr : type b. b t -> 'a -> 'a = fun pt a ->
-    self#fold pt a
+  method fold_ptr : type b. b ptr -> 'a -> 'a = fun pt a ->
+    match pt with
+    | PHeap t	-> self#fold t a
+    | PStatic t	-> self#fold t a
+    | PFn ft	-> self#fold_fn ft a
 
   method fold_struct : type b. b struct' -> 'a -> 'a = fun st a ->
     match st with
@@ -29,9 +32,9 @@ object(self)
 
   method fold_fn : type s. s fn -> 'a -> 'a = fun s a ->
     match s with
-    | FLam0 t -> self#fold t a
-    | FLamV (_,s) -> self#fold_fn s a
-    | FLam1 (t,_,s) -> self#fold t (self#fold_fn s a)
+    | FnRet t -> self#fold t a
+    | FnVarArgs (_,s) -> self#fold_fn s a
+    | FnArg (t,_,s) -> self#fold t (self#fold_fn s a)
 
   method fold : type b. b t -> 'a -> 'a = fun t a ->
     match t with
@@ -42,5 +45,4 @@ object(self)
     | TStruct st	-> self#fold_struct st a
     | TEnum et		-> self#fold_enum et a
     | TPrim pt		-> self#fold_prim pt a
-    | TFn ft		-> self#fold_fn ft a
 end

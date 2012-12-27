@@ -5,7 +5,7 @@ constructs), using type witnesses and GADTs for added compile time
 safety. (why write a typechecker when you can use OCaml's?) *)
 
 (** Basic types *)
-type unit' = unit
+type void' = unit
 type string' = string
 
 (* Scalar types *)
@@ -81,13 +81,15 @@ and _ t =
   | TCaml	: 'a Caml.t	-> 'a Caml.t t
   | TForward	: 'a t Lazy.t	-> 'a t
   | TNamed	: 'a * q_ident	-> 'a t
-  | TPtr	: 'a t		-> 'a ptr t
+  | TPtr	: 'a ptr	-> 'a ptr t
   | TStruct	: 'a struct'	-> 'a struct' t
   | TEnum	: 'a enum	-> 'a enum t
   | TPrim	: 'a prim	-> 'a t
-  | TFn		: 's fn		-> 's fn t
 
-and _ ptr
+and _ ptr =
+  | PHeap	: 'a t		-> 'a ptr
+  | PStatic	: 'a t		-> 'a ptr
+  | PFn		: 's fn		-> 's fn ptr
 
 and _ struct' =
   | SZero		: 'a					-> 'a struct'
@@ -107,7 +109,7 @@ and (_,_) field =
 
 (* Primitive types *)
 and _ prim =
-  | Unit	: unit' prim
+  | Void	: void' prim
   | Bool	: bool' prim
   | String	: string' prim
 
@@ -130,12 +132,17 @@ and _ prim =
 
 (** Function signature *)
 and _ fn =
+  (*
+    fn = arg* ret	: ('a x -> ... -> 'r x) fn
+    fn = arg* varg ret	: ('a x -> ... -> varargs -> 'r x) fn
+  *)
+
   (* Base case *)
-  | FLam0	: 'r t				-> 'r x fn
+  | FnRet	: 'r t				-> 'r x fn
   (* Variable arguments can only be at the last position *)
-  | FLamV	: ident * 'r x fn	-> (varargs->'r x) fn
-  (* One dditional argument *)
-  | FLam1	: 'a t * ident * 'b fn	-> ('a x->'b) fn
+  | FnVarArgs	: ident * 'r x fn		-> (varargs->'r x) fn
+  (* One dditional argument (TODO: can be unnamed) *)
+  | FnArg	: 'a t * ident * 'b fn	-> ('a x->'b) fn
 
 (** Variadic function arguments *)
 and varargs =
@@ -144,7 +151,7 @@ and varargs =
 
 (* Literals *)
 and _ lit =
-  | LitUnit	:		   unit' lit
+  | LitVoid	:		   void' lit
   | LitBool	: bool		-> bool' lit
   | LitString	: string	-> string' lit
 
@@ -171,14 +178,16 @@ and _ x =
   | XLit	: 'a lit				-> 'a x
   (** Identifiers *)
   | XId		: 'a t * q_ident			-> 'a x
+  (** Function identifiers *)
+  | XFnId	: 'a fn * q_ident			-> 'a fn x
   (** New bindings *)
   | XLet	: 'a t * q_ident * 'a x * ('a x->'b x)	-> 'b x
-  (** Function application, base case *)
-  | XApp0	: ('r x) fn x				-> 'r x
-  (** Function application, variadic *)
-  | XAppV	: (varargs->'r x) fn x * varargs	-> ('r x) fn x
-  (** Function application, recursive case *)
-  | XApp1	: ('a x->'b) fn x * 'a x		-> ('b) fn x
+  (** Push one argument onto stack *)
+  | XFnPushArg	: ('a x->'b) fn x * 'a x		-> 'b fn x
+  (** Push variadic arguments onto stack, and call *)
+  | XFnPushVA	: (varargs->'b x) fn x * varargs	-> 'b x fn x
+  (** Call function with arguments on stack *)
+  | XFnCall	: 'a x fn x				-> 'a x
   (** Unary operators *)
   | XOp1	: ('a,'b) op1 * 'a x			-> 'b x
   (** Binary operators *)
@@ -195,6 +204,8 @@ and (_,_) op1 =
   | O1Bit	: [`Not]		-> (int,int) op1
   | O1Logic	: [`Not]		-> (bool,bool) op1
   | O1SGet	: ('a,'b) field		-> ('a    ,'b) op1
+  | O1FnDeref	:			   ('a fn ptr,'a fn) op1
+  | O1FnRef	:			   ('a fn,'a fn ptr) op1
 
 (** Binary operators *)
 and (_,_,_) op2 =
@@ -302,6 +313,6 @@ module type MODULE =
 
     (** Define values *)
     val defvar'		: ident -> 'a t -> 'a x -> 'a x
-    val defun'		: ident -> ('s) fn -> 's -> 's
-    val extern'		: ident -> ('s) fn -> 's
+    val defun'		: ident -> 's fn -> 's -> 's
+    val extern'		: ident -> 's fn -> 's
   end

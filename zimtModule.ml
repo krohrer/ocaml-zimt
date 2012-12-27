@@ -24,22 +24,22 @@ module Make (A : ARGS) : MODULE =
     module Fn =
       struct
 	let (^^) f x = f x
-	let ret t = FLam0 t
-	let varargs n s = FLamV (n,s)
-	let arg t n s = FLam1 (t,n,s)
+	let ret t = FnRet t
+	let varargs n s = FnVarArgs (n,s)
+	let arg t n s = FnArg (t,n,s)
 
 	let rec mkcall : type s. s fn -> s fn x -> s = fun fs fx ->
 	  match fs with
-	  | FLam0 t -> XApp0 fx
-	  | FLamV (_,fs') -> fun va -> mkcall fs' (XAppV (fx, va))
-	  | FLam1 (_,_,fs') -> fun x -> mkcall fs' (XApp1 (fx, x))
+	  | FnRet t -> XFnCall fx
+	  | FnVarArgs (_,fs') -> fun va -> mkcall fs' (XFnPushVA (fx, va))
+	  | FnArg (_,_,fs') -> fun x -> mkcall fs' (XFnPushArg (fx, x))
 
         let bind env fsig fbody =
           let rec bind' : type s. env -> s fn -> s -> defvalue = fun e fs f -> 
 	    match fs with
-	    | FLam0 _ -> DefFunc (fsig, f)
-	    | FLamV (n,fs') -> let va = VZero in bind' e fs' (f va)
-	    | FLam1 (t,n,fs') -> let x = XId (t,(e,n)) in bind' e fs' (f x)
+	    | FnRet _ -> DefFunc (fsig, f)
+	    | FnVarArgs (n,fs') -> let va = VZero in bind' e fs' (f va)
+	    | FnArg (t,n,fs') -> let x = XId (t,(e,n)) in bind' e fs' (f x)
 	  in
 	  bind' env fsig fbody
       end
@@ -61,14 +61,14 @@ module Make (A : ARGS) : MODULE =
 
     let defun' n fs fimpl =
       let e = env#env in
-      let k = Fn.mkcall fs (XId (TFn fs, (e,n))) in
+      let k = Fn.mkcall fs (XFnId (fs, (e,n))) in
       let def = Fn.bind e fs fimpl in
       env#add_value n def;
       k
 
     let extern' n fs =
       let e = env#env in
-      let k = Fn.mkcall fs (XId (TFn fs, (e,n))) in
+      let k = Fn.mkcall fs (XFnId (fs, (e,n))) in
       env#add_value n (DefExt fs);
       k
   end
