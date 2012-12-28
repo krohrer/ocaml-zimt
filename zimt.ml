@@ -78,13 +78,13 @@ and q_ident = env * ident
 
 (** Type of expressions *)
 and _ t =
-  | TCaml	: 'a Caml.t	-> 'a Caml.t t
-  | TForward	: 'a t Lazy.t	-> 'a t
-  | TNamed	: 'a * q_ident	-> 'a t
-  | TPtr	: 'a ptr	-> 'a ptr t
-  | TStruct	: 'a struct'	-> 'a struct' t
-  | TEnum	: 'a enum	-> 'a enum t
-  | TPrim	: 'a prim	-> 'a t
+  | TCaml	: 'a Caml.t		-> 'a Caml.t t
+  | TForward	: 'a t Lazy.t		-> 'a t
+  | TNamed	: 'a t * q_ident	-> 'a t
+  | TPtr	: 'a ptr		-> 'a ptr t
+  | TStruct	: 'a struct'		-> 'a struct' t
+  | TEnum	: 'a enum		-> 'a enum t
+  | TPrim	: 'a prim		-> 'a t
 
 and _ ptr =
   | PHeap	: 'a t		-> 'a ptr
@@ -104,7 +104,7 @@ and _ enum =
 (* Arrays, pointers, structs *)
 and (_,_) field =
   | FDeref	: 'a ptr		-> ('a ptr, 'a) field
-  | FSubsript	: 'a ptr * int x	-> ('a ptr, 'a) field
+  | FSubscript	: 'a ptr * int x	-> ('a ptr, 'a) field
   | FNamed	: 'a t * 'b t * ident	-> ('a, 'b) field
 
 (* Primitive types *)
@@ -133,15 +133,15 @@ and _ prim =
 (** Function signature *)
 and _ fn =
   (*
-    fn = arg* ret	: ('a x -> ... -> 'r x) fn
-    fn = arg* varg ret	: ('a x -> ... -> varargs -> 'r x) fn
+    fn = arg+ ret	: ('a x -> ... -> 'r x) fn
+    fn = arg+ varg ret	: ('a x -> ... -> varargs -> 'r x) fn
   *)
 
-  (* Base case *)
-  | FnRet	: 'r t				-> 'r x fn
-  (* Variable arguments can only be at the last position *)
-  | FnVarArgs	: ident * 'r x fn		-> (varargs->'r x) fn
-  (* One dditional argument (TODO: can be unnamed) *)
+  (* Base case : varargs and return type *)
+  | FnVARet	: ident * 'r t			-> (varargs->'r x) fn
+  (* Base case : one (unnamed) arg (possibly void), return type *)
+  | FnArgRet	: 'a t * ident option * 'r t	-> ('a x->'r x) fn
+  (* One (unnamed) additional argument *)
   | FnArg	: 'a t * ident option * 'b fn	-> ('a x->'b) fn
 
 (** Variadic function arguments *)
@@ -181,19 +181,19 @@ and _ x =
   (** Function identifiers *)
   | XFnId	: 'a fn * q_ident			-> 'a fn x
   (** New bindings *)
-  | XLet	: 'a t * q_ident * 'a x * ('a x->'b x)	-> 'b x
+  | XLet	: 'a t * q_ident * 'a x * 'b x		-> 'b x
   (** Push one argument onto stack *)
-  | XFnPushArg	: ('a x->'b) fn x * 'a x		-> 'b fn x
+  | XFnArg1	: ('a x->'b) fn x * 'a x		-> 'b fn x
   (** Push variadic arguments onto stack, and call *)
-  | XFnPushVA	: (varargs->'b x) fn x * varargs	-> 'b x fn x
+  | XFnVACall	: (varargs->'b x) fn x * varargs	-> 'b x
   (** Call function with arguments on stack *)
-  | XFnCall	: 'a x fn x				-> 'a x
+  | XFnArg1Call	: ('a x->'b x) fn x * 'a x		-> 'b x
   (** Unary operators *)
   | XOp1	: ('a,'b) op1 * 'a x			-> 'b x
   (** Binary operators *)
   | XOp2	: ('a,'b,'c) op2 * 'a x * 'b x		-> 'c x
   (** Conditional expression (why if if you can have cond?) *)
-  | XCond	: (bool x*'a x) list * 'a x		-> 'a x
+  | XCond	: (bool' x*'a x) list * 'a x		-> 'a x
   (** Explicity sequencing of expressions *)
   | XDo		: void' x list * 'a x			-> 'a x
   (* TOOD : Add looping construct *)
@@ -281,9 +281,10 @@ module type FN =
 
 	e.g. (arg int "a" ^^ arg bool "b" ^^ arg unit) *)
     val (^^) : ('a -> 'b) -> 'a -> 'b
-    val ret : 'r t -> 'r x fn
-    val varargs : ident -> 'r x fn -> (varargs->'r x) fn
-    val arg : 'a t -> ident -> 'b fn -> ('a x->'b) fn
+    val arg_ret : 'a t * ident -> 'r t -> ('a x -> 'r x) fn
+    val uarg_ret : 'a t -> 'r t -> ('a x -> 'r x) fn
+    val varargs_ret : ident -> 'r t -> (varargs->'r x) fn
+    val arg : 'a t * ident -> 'b fn -> ('a x->'b) fn
     val uarg : 'a t -> 'b fn -> ('a x->'b) fn
 
     (** Helpers *)

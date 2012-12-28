@@ -5,7 +5,8 @@ open ZimtEnv
 open ZimtEnum
 open ZimtType
 open ZimtExpr
-open ZimtCaml
+open ZimtPrinter
+(*open ZimtCaml*)
 
 open Caml
 
