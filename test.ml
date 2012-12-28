@@ -5,7 +5,7 @@ open ZimtEnv
 open ZimtEnum
 open ZimtType
 open ZimtExpr
-(* open ZimtCaml *)
+open ZimtCaml
 
 open Caml
 

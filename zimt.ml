@@ -142,7 +142,7 @@ and _ fn =
   (* Variable arguments can only be at the last position *)
   | FnVarArgs	: ident * 'r x fn		-> (varargs->'r x) fn
   (* One dditional argument (TODO: can be unnamed) *)
-  | FnArg	: 'a t * ident * 'b fn	-> ('a x->'b) fn
+  | FnArg	: 'a t * ident option * 'b fn	-> ('a x->'b) fn
 
 (** Variadic function arguments *)
 and varargs =
@@ -195,7 +195,7 @@ and _ x =
   (** Conditional expression (why if if you can have cond?) *)
   | XCond	: (bool x*'a x) list * 'a x		-> 'a x
   (** Explicity sequencing of expressions *)
-  | XDo		: unit x list * 'a x			-> 'a x
+  | XDo		: void' x list * 'a x			-> 'a x
   (* TOOD : Add looping construct *)
 
 (** Unary operators *)
@@ -284,9 +284,11 @@ module type FN =
     val ret : 'r t -> 'r x fn
     val varargs : ident -> 'r x fn -> (varargs->'r x) fn
     val arg : 'a t -> ident -> 'b fn -> ('a x->'b) fn
+    val uarg : 'a t -> 'b fn -> ('a x->'b) fn
 
     (** Helpers *)
-    val bind : 's fn -> 's -> defvalue
+    val bind : env -> 's fn -> 's -> defvalue
+    val apply : 's fn x -> 's
     val mkcall : 's fn -> 's fn x -> 's
   end
 
@@ -303,16 +305,10 @@ module type MODULE =
     (** EDSL for function signatures
 	e.g. (arg int "a" ^^ arg bool "b" ^^ arg 
     *)
-    module Fn :
-      sig
-	val (^^) : ('a -> 'b) -> 'a -> 'b
-	val ret : 'r t -> 'r x fn
-	val varargs : ident -> 'r x fn -> (varargs->'r x) fn
-	val arg : 'a t -> ident -> 'b fn -> ('a x->'b) fn
-      end
+    module Fn : FN
 
     (** Define values *)
     val defvar'		: ident -> 'a t -> 'a x -> 'a x
-    val defun'		: ident -> 's fn -> 's -> 's
-    val extern'		: ident -> 's fn -> 's
+    val defun'		: ident -> (_->_ as 's) fn -> 's -> 's * 's fn ptr x
+    val extern'		: ident -> (_->_ as 's) fn -> 's * 's fn ptr x
   end

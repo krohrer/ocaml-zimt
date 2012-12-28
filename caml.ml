@@ -12,7 +12,14 @@ type _ t =
   | List	: 'a t		-> 'a list t
   | Option	: 'a t		-> 'a option t
   | Custom	: 'a custom	-> 'a custom t
+  | Tuple2	: 'a t * 'b t	-> ('a*'b) t
+  | Tuple3	: 'a t * 'b t * 'c t -> ('a*'b*'c) t
+  | Tuple4	: 'a t * 'b t * 'c t * 'd t -> ('a*'b*'c*'d) t
 
-and _ custom
+and 'a custom
 
 and poly
+
+type _ fn' =
+  | LArg1Ret : 'a t * 'b t -> ('a->'b) fn'
+  | LArg1 : 'a t * ('b->'r) fn' -> ('a->'b->'r) fn'

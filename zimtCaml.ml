@@ -14,7 +14,7 @@ include (ZimtModule.Make(struct
   ]
 end))
 
-type void = Zimt.void'
+type void' = Zimt.void'
 type 'a struct' = 'a Zimt.struct'
 type 'a x = 'a Zimt.x
 type ('a,'b) field = ('a,'b) Zimt.field
@@ -29,7 +29,7 @@ let mlsize_t = Zimt.TPrim Zimt.UIntNat
 let tag_t = Zimt.TPrim Zimt.UInt8
 
 let string' = Zimt.TPrim Zimt.String
-let ptr t = Zimt.TPtr t
+let sptr t = Zimt.TPtr (Zimt.PStatic t)
 
 open Zimt
 
@@ -38,33 +38,33 @@ module Alloc =
     let valarg ct n = Fn.arg (TCaml ct) n
     let valret ct = Fn.ret (TCaml ct)
     
-    let alloc = extern' "caml_alloc"
-	Fn.(arg mlsize_t "size" ^^ arg tag_t "tag" ^^ valret Caml.Poly)
+    let alloc, _ = extern' "caml_alloc"
+	Fn.(uarg mlsize_t ^^ uarg tag_t ^^ valret Caml.Poly)
 
-    let alloc_small = extern' "caml_alloc_small"
-      Fn.(arg mlsize_t "size" ^^ arg tag_t "tag" ^^ valret Caml.Poly)
+    let alloc_small, _ = extern' "caml_alloc_small"
+      Fn.(uarg mlsize_t ^^ uarg tag_t ^^ valret Caml.Poly)
 
-    let alloc_tuple = extern' "caml_alloc_tuple"
-      Fn.(arg mlsize_t "size" ^^ valret Caml.Poly)
+    let alloc_tuple, _ = extern' "caml_alloc_tuple"
+      Fn.(uarg mlsize_t ^^ valret Caml.Poly)
 
-    let alloc_string = extern' "caml_alloc_string"
-      Fn.(arg mlsize_t "size" ^^ valret Caml.String)
+    let alloc_string, _ = extern' "caml_alloc_string"
+      Fn.(uarg mlsize_t ^^ valret Caml.String)
 
-    let copy_string = extern' "caml_copy_string"
-      Fn.(arg string' "str" ^^ valret Caml.String)
+    let copy_string, _ = extern' "caml_copy_string"
+      Fn.(uarg string' ^^ valret Caml.String)
 
-    let copy_string_array = extern' "caml_copy_string_array"
-      Fn.(arg (ptr string') "strings" ^^ valret (Caml.Array Caml.String))
+    let copy_string_array, _ = extern' "caml_copy_string_array"
+      Fn.(uarg (sptr string') ^^ valret (Caml.Array Caml.String))
 
-    let copy_double = extern' "caml_copy_double"
-      Fn.(arg (TPrim Float64) "d" ^^ valret Caml.Float)
+    let copy_double, _ = extern' "caml_copy_double"
+      Fn.(uarg (TPrim Float64) ^^ valret Caml.Float)
 
-    let copy_int32 = extern' "caml_copy_int32"
-      Fn.(arg (TPrim Int32) "i" ^^ valret Caml.Int32)
+    let copy_int32, _ = extern' "caml_copy_int32"
+      Fn.(uarg (TPrim Int32) ^^ valret Caml.Int32)
 
-    let copy_int64 = extern' "caml_copy_int64"
-      Fn.(arg (TPrim Int64) "i" ^^ valret Caml.Int64)
+    let copy_int64, _ = extern' "caml_copy_int64"
+      Fn.(uarg (TPrim Int64) ^^ valret Caml.Int64)
 
-    let copy_nativeint = extern' "caml_copy_nativeint"
-      Fn.(arg (TPrim IntNat) "i" ^^ valret Caml.Nativeint)
+    let copy_nativeint, _ = extern' "caml_copy_nativeint"
+      Fn.(uarg (TPrim IntNat) ^^ valret Caml.Nativeint)
   end
