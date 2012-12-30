@@ -191,3 +191,17 @@ module type M =
 sig
   val make : 'a -> (module T with type s = 'a)
 end
+
+module type T =
+  sig
+    type t
+    val dependencies : t list
+  end
+
+module type B = T with type t = (module T);;
+
+
+module M =
+  struct
+    external foo : 'a -> 'b = "%identity"
+  end
