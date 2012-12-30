@@ -47,6 +47,8 @@ module Make (A : ARGS) =
 
       method env = (self :> env)
 
+      method namespace = name
+
       method includes : header list = HeaderSet.elements includes
 
       method requires : env list = EnvSet.elements requires

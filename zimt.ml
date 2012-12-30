@@ -40,11 +40,14 @@ type scalar'	= [ numbers' | bool' ]
 type ident = string
 type filename = string
 type header = [ `Sys of filename | `Usr of filename ] 
+type namespace = ident
 
 (** Environment *)
 class type ['v,'t] environment =
 object
   method env : ('v,'t) environment
+
+  method namespace : namespace
 
   method requires : ('v,'t) environment list
   method includes : header list
@@ -238,13 +241,15 @@ and _ op2arith =
   | A2Div	: numbers' op2arith
   | A2Mod	: integers' op2arith
 
-(* NAMED MODULE *)
+(** Something with a name *)
 module type NAMED =
   sig
     val name' : string
   end
 
-(* CONCRETE TYPE *)
+(** Concrete zimt type with type witness [w] and type representation
+   [type']
+*)
 module type TYPE =
   sig
     include NAMED
@@ -253,7 +258,7 @@ module type TYPE =
     val type' : w t
   end
 
-(* Enumeration mixin, iterative, uses incomplete type for type witness
+(** Enumeration mixin, iterative, uses incomplete type for type witness
    [w] *)
 module type ENUM =
   sig
@@ -274,7 +279,7 @@ module type STRUCT =
     val pad'	: int t -> int -> unit
   end
 
-(* FUNCTION TYPE *)
+(** Function signatures/types *)
 module type FN =
   sig
     (** EDSL for function signatures
@@ -293,10 +298,14 @@ module type FN =
     val mkcall : 's fn -> 's fn x -> 's
   end
 
-(* MODULE TYPE *)
+(** Syntactic sugar for environments. *)
 module type MODULE =
   sig
-    val name'		: ident
+    (** If you need to get down and dirty. But you shouldn't!@$# Use
+	the API below instead to define types and values (globals and
+	functions).  The idea is that the code emitter can use this
+	and qualified identifiers (q_ident) for dependency analysis.
+    *)
     val environment'	: mutenv
 
     (** Define composite types *)
@@ -308,8 +317,10 @@ module type MODULE =
     *)
     module Fn : FN
 
-    (** Define values *)
+    (** Define global Zimt variable *)
     val defvar'		: ident -> 'a t -> 'a x -> 'a x
+    (** Define global Zimt function *)
     val defun'		: ident -> (_->_ as 's) fn -> 's -> 's * 's fn ptr x
+    (** Define external C function *)
     val extern'		: ident -> (_->_ as 's) fn -> 's * 's fn ptr x
   end
