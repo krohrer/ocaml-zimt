@@ -1,4 +1,7 @@
-(* TODO : Rethink type qualifiers *)
+(* TODO : Rethink type qualifiers, I guess you are bound to take some
+   liberties with the definitions when not following the C99 spec to
+   the word. (And I'm not going to read the whole thing just now.)
+*)
 type t			=
   | TVoid
   | TBool		of type_qual list
