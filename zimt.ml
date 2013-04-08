@@ -1,8 +1,12 @@
 (** Type witnesses / phantom types for builtin types *)
 
-(* C Language description hoisted into OCaml (with some new
-constructs), using type witnesses and GADTs for added compile time
-safety. (why write a typechecker when you can use OCaml's?) *)
+(* C Language description hoisted into OCaml; with a little more
+   functional flavor: everything is an expression, no statements.
+   Stuff like looping constructs, ... are still missing.
+
+   Using type witnesses and GADTs for added compile time safety. (why
+   write a typechecker when you can use OCaml's?)
+*)
 
 (** Basic types *)
 type void' = unit
@@ -50,7 +54,6 @@ object
   method namespace : namespace
 
   method requires : ('v,'t) environment list
-  method includes : header list
 
   method lookup_value : ident -> 'v option
   method lookup_type : ident -> 't option
@@ -59,7 +62,6 @@ end
 class type ['v,'t] mutable_environment =
 object
   inherit ['v,'t] environment
-  method add_include : header -> unit
 
   method add_value : ident -> 'v -> unit
   method add_type : ident -> 't -> unit
@@ -95,12 +97,14 @@ and _ ptr =
   | PFn		: 's fn		-> 's fn ptr
 
 and _ struct' =
+  (* | SNamed		: 'a * q_ident * header list		-> 'a struct' *)
   | SZero		: 'a					-> 'a struct'
   | SPlusField		: 'a struct' * ('b t*ident)		-> 'a struct'
   | SPlusBits		: 'a struct' * (int t*ident*int)	-> 'a struct'
   | SPlusPadding	: 'a struct' * (int t*int)		-> 'a struct'
 
 and _ enum =
+  (* | ENamed	: 'a * q_ident * header list 	-> 'a enum *)
   | EZero	: 'a				-> 'a enum
   | EPlus	: 'a enum * (ident*int lit)	-> 'a enum
 
@@ -241,21 +245,17 @@ and _ op2arith =
   | A2Div	: numbers' op2arith
   | A2Mod	: integers' op2arith
 
-(** Something with a name *)
-module type NAMED =
-  sig
-    val name' : string
-  end
-
 (** Concrete zimt type with type witness [w] and type representation
-   [type']
+   [t']
 *)
 module type TYPE =
   sig
-    include NAMED
+    val env' : env
+    val name' : ident
+    val requires' : header list
 
     type w
-    val type' : w t
+    val t' : w t
   end
 
 (** Enumeration mixin, iterative, uses incomplete type for type witness
@@ -301,16 +301,41 @@ module type FN =
 (** Syntactic sugar for environments. *)
 module type MODULE =
   sig
-    (** If you need to get down and dirty. But you shouldn't!@$# Use
-	the API below instead to define types and values (globals and
+    (** If you need to get down and dirty. But you shouldn't!@$#
+
+	Use the API below instead to define types and values (globals and
 	functions).  The idea is that the code emitter can use this
-	and qualified identifiers (q_ident) for dependency analysis.
-    *)
+	and qualified identifiers (q_ident) for dependency
+	analysis.  *)
     val environment'	: mutenv
 
-    (** Define composite types *)
-    val enum'	: ident -> (module ENUM)
-    val struct'	: ident -> (module STRUCT)
+    (** External C type module mixin 
+	e.g.:
+	
+	module FooInt31 :
+	sig
+	include (val deftype' "fooint31" [ `Sys "stdfoo.h" ] )
+	end
+
+	Maybe
+
+	module FooInt31 :
+	sig
+	include CType.Make(struct
+	let name = "fooint31_t"
+	let requires = [ `Sys "stdfoo.h" ]
+	end)
+	end
+
+	would be better. Definitely requires more code though. Even
+	labeled arguments would win with this measure. And optional
+	arguments would be even more code with modules. *)
+
+    (** Type module mixin *)
+    val defenum'	: ident -> header list -> (module ENUM)
+    val defstruct'	: ident -> header list -> (module STRUCT)
+    (* val deftype'	: ident -> header list -> (module TYPE) *)
+
 
     (** EDSL for function signatures
 	e.g. (arg int "a" ^^ arg bool "b" ^^ arg 

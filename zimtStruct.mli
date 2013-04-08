@@ -1,2 +1,2 @@
-val make : Zimt.mutenv -> Zimt.ident -> (module Zimt.STRUCT)
+val make : Zimt.mutenv -> Zimt.ident -> Zimt.header list -> (module Zimt.STRUCT)
 

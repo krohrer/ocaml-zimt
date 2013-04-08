@@ -1,1 +1,1 @@
-val make : Zimt.mutenv -> Zimt.ident -> (module Zimt.ENUM)
+val make : Zimt.mutenv -> Zimt.ident -> Zimt.header list -> (module Zimt.ENUM)

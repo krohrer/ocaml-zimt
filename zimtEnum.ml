@@ -1,28 +1,30 @@
 open Zimt
 
-module type ARGS =
-  sig
-    val name	: ident
-    val env	: mutenv
-  end
-
-module Make (A : ARGS) : ENUM =
+module Make (A : sig
+  val name	: ident
+  val env	: mutenv
+  val requires	: header list
+end) : ENUM =
   struct
     type e = unit
     type w = e enum
 
+    let env' = A.env#env
+    let requires' = []
+
     let repr : 'a enum ref = ref (EZero ())
 
-    let type' = TForward (lazy (TEnum !repr))
+    let t' = TForward (lazy (TEnum !repr))
     let name' = A.name
 
     let case' n l =
       A.env#add_value n (DefVar (XLit l));
       repr := EPlus (!repr, (n,l));
-      XId (type', (A.env#env,n))
+      XId (t', (A.env#env,n))
   end
 
-let make env name = (module Make (struct
+let make env name hs = (module Make (struct
   let name = name
   let env = env
+  let requires = hs
 end) : ENUM)

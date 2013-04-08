@@ -12,3 +12,5 @@ object
 end
 
 class ['a] default_fold : ['a] fold_t
+
+(* val make : Zimt.mutenv -> Zimt.ident -> Zimt.header list -> (module Zimt.TYPE) *)

@@ -5,7 +5,6 @@ let failwithf fmt = Printf.ksprintf failwith fmt
 module type ARGS =
   sig
     val name : Zimt.ident
-    val includes : header list
   end
 
 module Make (A : ARGS) : MODULE =
@@ -17,8 +16,6 @@ module Make (A : ARGS) : MODULE =
     end)
 
     let env = Env.make A.name
-
-    let _ = List.iter env#add_include A.includes
 
     let name' = A.name
     let environment' = env
@@ -58,14 +55,19 @@ module Make (A : ARGS) : MODULE =
 	  bind' env fsig fbody
       end
 
-    let enum' n =
-      let module E = (val ZimtEnum.make environment' n) in
-      env#add_type n (DefType E.type');
+    (* let deftype' n hs = *)
+    (*   let module T = (val ZimtType.make environment' n hs) in *)
+    (*   env#add_type n (DefType T.t'); *)
+    (*   (module T : TYPE) *)
+
+    let defenum' n hs =
+      let module E = (val ZimtEnum.make environment' n hs) in
+      env#add_type n (DefType E.t');
       (module E : ENUM)
 
-    let struct' n = 
-      let module S = (val ZimtStruct.make environment' n) in
-      env#add_type n (DefType S.type');
+    let defstruct' n hs = 
+      let module S = (val ZimtStruct.make environment' n hs) in
+      env#add_type n (DefType S.t');
       (module S : STRUCT)
 
     let defvar' n t x =

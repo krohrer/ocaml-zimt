@@ -49,12 +49,7 @@ module Make (A : ARGS) =
 
       method namespace = name
 
-      method includes : header list = HeaderSet.elements includes
-
       method requires : env list = EnvSet.elements requires
-
-      method add_include h =
-	includes <- HeaderSet.add h includes
 
       method lookup_value n =
 	try Some (Hashtbl.find values n) with Not_found -> None
