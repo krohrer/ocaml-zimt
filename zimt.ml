@@ -43,7 +43,7 @@ type scalar'	= [ numbers' | bool' ]
 (** Identifiers *)
 type ident = string
 type filename = string
-type header = [ `Sys of filename | `Usr of filename ] 
+type header = [ `Sys of filename | `Usr of filename ]
 type namespace = ident
 
 (** Environment *)
@@ -301,7 +301,7 @@ module type FN =
 (** Syntactic sugar for environments. *)
 module type MODULE =
   sig
-    (** If you need to get down and dirty. But you shouldn't!@$#
+    (** If you need to get down and dirty. (Hint: you !@$# shouldn't)
 
 	Use the API below instead to define types and values (globals and
 	functions).  The idea is that the code emitter can use this
