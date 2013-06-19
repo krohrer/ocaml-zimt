@@ -1,4 +1,4 @@
-type t = Format.formatter -> unit
+type t (* = Format.formatter -> unit *)
 
 (* Pretty printers as a monoid structure, or whatever you wanna call it.
 
