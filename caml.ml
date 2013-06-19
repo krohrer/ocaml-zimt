@@ -18,7 +18,8 @@ type _ t =
 
 and 'a custom
 
-and poly
+and poly =
+  | PNamed of string
 
 type _ fn' =
   | LArg1Ret : 'a t * 'b t -> ('a->'b) fn'
