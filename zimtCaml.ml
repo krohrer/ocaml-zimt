@@ -3,14 +3,13 @@ open Printf
 include (ZimtModule.Make(struct
   let name = "ZimtForeign"
   let includes =
-    let caml n = `Usr (sprintf "caml/%s.h" n) in
     [
-      caml "mlvalues";
-      caml "custom";
-      caml "alloc";
-      caml "memory";
-      caml "callback";
-      caml "fail"
+      `Usr "caml/mlvalues.h";
+      `Usr "caml/custom.h";
+      `Usr "caml/alloc.h";
+      `Usr "caml/memory.h";
+      `Usr "caml/callback.h";
+      `Usr "caml/fail.h";
   ]
 end))
 
